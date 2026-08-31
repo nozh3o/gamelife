@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>GameLife — прокачай свою жизнь</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e1016" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f4fa" media="(prefers-color-scheme: light)">
+<meta name="description" content="Геймификация жизни: квесты, привычки, цели, характеристики персонажа и финансы.">
+
+<!-- иконки на домашнем экране -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<!-- iOS: запуск как отдельное приложение, без адресной строки -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GameLife">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="toastRoot" class="toast-root"></div>
+<div id="fxRoot" class="fx-root"></div>
+<div id="modalRoot"></div>
+
+<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Меню">☰</button>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-icon">🎮</span>
+      <span class="brand-name">GameLife</span>
+    </div>
+
+    <div class="player-card" id="playerCard"></div>
+
+    <nav class="nav" id="mainNav">
+      <button class="nav-btn active" data-tab="dashboard"><span class="nav-ic">🏠</span><span>Дашборд</span></button>
+      <button class="nav-btn" data-tab="tasks"><span class="nav-ic">⚔️</span><span>Задачи</span></button>
+      <button class="nav-btn" data-tab="goals"><span class="nav-ic">🎯</span><span>Цели</span></button>
+      <button class="nav-btn" data-tab="character"><span class="nav-ic">🧙</span><span>Персонаж</span></button>
+      <button class="nav-btn" data-tab="shop"><span class="nav-ic">🛒</span><span>Магазин</span></button>
+      <button class="nav-btn" data-tab="finance"><span class="nav-ic">💰</span><span>Финансы</span></button>
+      <button class="nav-btn" data-tab="stats"><span class="nav-ic">📊</span><span>Аналитика</span></button>
+      <button class="nav-btn" data-tab="journal"><span class="nav-ic">📔</span><span>Журнал</span></button>
+      <button class="nav-btn" data-tab="achievements"><span class="nav-ic">🏆</span><span>Достижения</span></button>
+      <button class="nav-btn" data-tab="settings"><span class="nav-ic">⚙️</span><span>Настройки</span></button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="syncBadge"></div>
+      <span id="todayDate"></span>
+    </div>
+  </aside>
+
+  <main class="content" id="content"></main>
+</div>
+
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/views-dashboard.js"></script>
+<script src="js/views-tasks.js"></script>
+<script src="js/views-goals.js"></script>
+<script src="js/views-character.js"></script>
+<script src="js/views-shop.js"></script>
+<script src="js/views-finance.js"></script>
+<script src="js/views-stats.js"></script>
+<script src="js/views-journal.js"></script>
+<script src="js/views-achievements.js"></script>
+<script src="js/views-settings.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
