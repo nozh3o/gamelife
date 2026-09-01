@@ -53,11 +53,12 @@ function renderDashboard() {
         </div>
       </div>
       <div class="hero-side">
-        <div class="card kpi">
-          <div class="kpi-label">День закрыт на</div>
-          <div class="big-number ${dayPct === 100 ? 'green' : ''}">${dayPct}%</div>
-          ${barHtml(dayPct, 'green')}
-          <div class="kpi-sub">${doneToday.length} из ${dueToday.length} ${plural(dueToday.length, 'ежедневки', 'ежедневок', 'ежедневок')}</div>
+        <div class="card kpi" style="display:flex;align-items:center;gap:14px;">
+          ${ringSvg(dayPct, { size: 80, stroke: 8, color: 'var(--green)', label: dayPct + '%' })}
+          <div>
+            <div class="kpi-label">День закрыт на</div>
+            <div class="kpi-sub" style="margin-top:4px;">${doneToday.length} из ${dueToday.length} ${plural(dueToday.length, 'ежедневки', 'ежедневок', 'ежедневок')}</div>
+          </div>
         </div>
         <div class="card kpi">
           <div class="kpi-label">Кошелёк</div>

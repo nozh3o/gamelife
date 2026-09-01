@@ -72,11 +72,48 @@ function renderNav() {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === currentTab);
   });
+  positionNavIndicators();
 }
+
+/* Плавающая «пилюля» под активным пунктом — двигаем её transform'ом
+   к позиции активной кнопки, а не пересоздаём фон на каждой кнопке. */
+function positionNavIndicators() {
+  const nav = document.getElementById('mainNav');
+  const navInd = document.getElementById('navIndicator');
+  if (nav && navInd) {
+    const active = nav.querySelector('.nav-btn.active');
+    if (active) {
+      navInd.style.transform = `translateY(${active.offsetTop}px)`;
+      navInd.style.height = active.offsetHeight + 'px';
+      navInd.classList.add('on');
+    } else {
+      navInd.classList.remove('on');
+    }
+  }
+  const bn = document.getElementById('bottomNav');
+  const bnInd = document.getElementById('bnIndicator');
+  if (bn && bnInd) {
+    const active = bn.querySelector('.bn-btn.active');
+    if (active) {
+      bnInd.style.transform = `translateX(${active.offsetLeft}px)`;
+      bnInd.style.width = active.offsetWidth + 'px';
+      bnInd.classList.add('on');
+    } else {
+      bnInd.classList.remove('on');
+    }
+  }
+}
+
 function goTab(tab) {
   currentTab = tab;
   document.getElementById('sidebar').classList.remove('open');
   renderAll();
+  // короткая анимация появления контента при переходе между вкладками —
+  // снимаем и тут же ставим класс заново, иначе повторный переход не переиграет анимацию
+  const c = content();
+  c.classList.remove('tab-enter');
+  void c.offsetWidth;
+  c.classList.add('tab-enter');
   window.scrollTo({ top: 0 });
 }
 
@@ -138,6 +175,8 @@ function init() {
     if (sidebar.contains(e.target) || e.target.closest('#mobileMenuBtn') || e.target.closest('#bottomMoreBtn')) return;
     sidebar.classList.remove('open');
   });
+
+  window.addEventListener('resize', positionNavIndicators);
 
   document.getElementById('todayDate').textContent =
     new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });

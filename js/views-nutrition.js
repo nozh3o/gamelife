@@ -131,13 +131,15 @@ function renderNutrition() {
   renderNutProfile();
 }
 
+const MACRO_RING_COLOR = { kcal: 'var(--gold)', protein: 'var(--accent-2)', fat: 'var(--orange)', carbs: 'var(--green)' };
+
 function macroBlockHtml(label, value, target, unit, kind) {
-  const pct = target ? clamp(Math.round((value / target) * 100), 0, 100) : 0;
+  const pct = target ? Math.round((value / target) * 100) : 0;
   const over = target && value > target * 1.1;
   return `<div class="macro-block ${over ? 'over' : ''}">
-    <div class="macro-top"><span>${label}</span><b>${fmtNum(value)}<span class="macro-target"> / ${fmtNum(target)} ${unit}</span></b></div>
-    ${barHtml(pct, kind === 'kcal' ? 'gold' : 'green')}
-    <div class="macro-pct">${target ? Math.round((value / target) * 100) : 0}%${over ? ' · перебор' : ''}</div>
+    ${ringSvg(pct, { size: 108, stroke: 10, color: MACRO_RING_COLOR[kind] || 'var(--accent)', label: fmtNum(value), sub: unit })}
+    <div class="macro-name">${label}</div>
+    <div class="macro-target">из ${fmtNum(target)} ${unit}${over ? ' · перебор' : ''}</div>
   </div>`;
 }
 

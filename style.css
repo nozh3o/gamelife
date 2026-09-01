@@ -25,12 +25,13 @@
   --orange: #ff9f5c;
   --cyan: #35c5e0;
 
-  --radius: 20px;
-  --radius-sm: 14px;
-  --radius-lg: 26px;
-  --shadow: 0 12px 32px rgba(0,0,0,.45);
-  --shadow-soft: 0 6px 18px rgba(0,0,0,.3);
-  --shadow-accent: 0 10px 28px -6px var(--accent-glow);
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-lg: 30px;
+  --shadow: 0 18px 44px rgba(0,0,0,.4);
+  --shadow-soft: 0 10px 26px rgba(0,0,0,.24);
+  --shadow-accent: 0 14px 34px -8px var(--accent-glow);
+  --spring: cubic-bezier(.34,1.56,.64,1);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -88,7 +89,9 @@ body::before {
 .app { display: grid; grid-template-columns: 276px 1fr; min-height: 100vh; position: relative; z-index: 1; }
 
 .sidebar {
-  background: var(--bg-soft);
+  background: color-mix(in srgb, var(--bg-soft) 88%, transparent);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
   border-right: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
@@ -114,10 +117,10 @@ body::before {
   background: linear-gradient(90deg, var(--text), var(--text) 60%, var(--accent-2));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.nav { display: flex; flex-direction: column; gap: 2px; margin-top: 18px; }
+.nav { display: flex; flex-direction: column; gap: 2px; margin-top: 18px; position: relative; }
 .nav-group-label {
   font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
-  color: var(--text-faint); padding: 16px 12px 6px;
+  color: var(--text-faint); padding: 16px 12px 6px; position: relative; z-index: 1;
 }
 .nav-group-label:first-child { padding-top: 0; }
 .nav-btn {
@@ -126,22 +129,40 @@ body::before {
   color: var(--text-dim); border-radius: 13px;
   cursor: pointer; font-size: 14px; font-weight: 500; text-align: left;
   transition: background .15s, color .15s;
+  position: relative; z-index: 1;
 }
 .nav-ic { font-size: 16px; width: 20px; text-align: center; flex: none; }
 .nav-btn:hover { background: var(--panel-2); color: var(--text); }
-.nav-btn.active { background: var(--panel-2); color: var(--text); font-weight: 700; }
+.nav-btn.active { color: var(--text); font-weight: 700; }
 .nav-btn.active .nav-ic { filter: drop-shadow(0 0 6px var(--accent-glow)); }
+
+/* Плавающая «пилюля» под активным пунктом — позицию и размер задаёт main.js */
+.nav-indicator {
+  position: absolute; top: 0; left: 0; right: 0; height: 0;
+  border-radius: 13px; background: var(--panel-2);
+  z-index: 0; pointer-events: none; opacity: 0;
+  transition: transform .4s var(--spring), height .3s var(--spring), opacity .2s ease;
+}
+.nav-indicator.on { opacity: 1; }
 
 .sidebar-footer {
   margin-top: auto; padding-top: 10px;
   border-top: 1px solid var(--border-soft);
 }
 .settings-btn { width: 100%; margin-bottom: 8px; }
+/* кнопка «Настройки» живёт вне #mainNav и не участвует в скользящей пилюле —
+   у неё свой статичный фон на активном состоянии */
+.sidebar-footer .nav-btn.active { background: var(--panel-2); }
 .sidebar-footer > span {
   display: block; padding: 6px 12px 2px;
   color: var(--text-faint); font-size: 11.5px; text-transform: capitalize;
 }
 .content { padding: 30px 34px 70px; max-width: 1240px; width: 100%; }
+.content.tab-enter { animation: contentEnter .32s var(--spring); }
+@keyframes contentEnter {
+  from { opacity: 0; transform: translateY(10px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .mobile-menu-btn {
   display: none; position: fixed; top: 12px; left: 12px; z-index: 100;
@@ -155,9 +176,9 @@ body::before {
   display: none;
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
   background: var(--bg-soft);
-  background: color-mix(in srgb, var(--bg-soft) 92%, transparent);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: color-mix(in srgb, var(--bg-soft) 86%, transparent);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
   border-top: 1px solid var(--border-soft);
   padding: 8px 6px calc(6px + env(safe-area-inset-bottom, 0px));
   align-items: stretch;
@@ -168,13 +189,23 @@ body::before {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 3px; padding: 6px 2px; border: none; background: transparent;
   color: var(--text-faint); border-radius: 13px; cursor: pointer;
-  transition: color .15s, background .15s;
+  transition: color .15s, transform .3s var(--spring);
+  position: relative; z-index: 1;
 }
-.bn-ic { font-size: 19px; line-height: 1; }
+.bn-ic { font-size: 19px; line-height: 1; transition: transform .3s var(--spring); }
 .bn-label { font-size: 10px; font-weight: 600; }
-.bn-btn.active { color: var(--text); background: var(--panel-2); }
-.bn-btn.active .bn-ic { filter: drop-shadow(0 0 7px var(--accent-glow)); }
+.bn-btn.active { color: var(--text); }
+.bn-btn.active .bn-ic { filter: drop-shadow(0 0 7px var(--accent-glow)); transform: scale(1.12) translateY(-1px); }
 .bn-more { color: var(--text-dim); }
+
+/* Плавающая «пилюля» под активным пунктом нижней панели — позицию задаёт main.js */
+.bn-indicator {
+  position: absolute; top: 6px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); left: 0; width: 0;
+  border-radius: 13px; background: var(--panel-2);
+  z-index: 0; pointer-events: none; opacity: 0;
+  transition: transform .4s var(--spring), width .3s var(--spring), opacity .2s ease;
+}
+.bn-indicator.on { opacity: 1; }
 
 /* ============ Карточка героя ============ */
 .player-card {
@@ -242,6 +273,16 @@ body::before {
 .bar-fill.boss { background: linear-gradient(90deg, #ff5d73, #b06cff); }
 .bar-fill.red-fill { background: linear-gradient(90deg, #ff5d73, #ff2f4f); }
 
+/* ============ Кольца прогресса (Apple Activity Ring) ============ */
+.ring { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.ring-fill { transition: stroke-dasharray .7s var(--spring); }
+.ring-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; gap: 1px;
+}
+.ring-label { font-weight: 800; font-size: 15px; letter-spacing: -.2px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ring-sub { font-size: 10.5px; color: var(--text-faint); font-weight: 600; }
+
 /* ============ Заголовки и сетки ============ */
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
@@ -301,22 +342,30 @@ body::before {
 /* ============ Кнопки ============ */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 10px 16px; border-radius: 13px;
+  padding: 10px 18px; border-radius: 980px;
   border: 1px solid var(--border-soft); background: var(--panel-2);
   color: var(--text); font-size: 13.5px; font-weight: 600;
-  cursor: pointer; white-space: nowrap;
-  transition: transform .08s, filter .15s, background .15s, opacity .15s, box-shadow .15s;
+  cursor: pointer; white-space: nowrap; position: relative; overflow: hidden;
+  transition: transform .3s var(--spring), filter .15s, background .15s, opacity .15s, box-shadow .15s;
 }
 .btn:hover:not(:disabled) { filter: brightness(1.15); }
-.btn:active:not(:disabled) { transform: scale(.96); }
-.btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; box-shadow: var(--shadow-accent); }
+.btn:active:not(:disabled) { transform: scale(.94); }
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-color: transparent; color: #fff; box-shadow: var(--shadow-accent);
+}
+/* лёгкий диагональный блик сверху — как на капсульных кнопках iOS */
+.btn.primary::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,.32), transparent 55%);
+}
 .btn.success { background: var(--green); border-color: transparent; color: #06281c; }
 .btn.danger { background: transparent; border-color: var(--red); color: var(--red); }
 .btn.danger-solid { background: var(--red); border-color: transparent; color: #fff; }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.ghost:hover:not(:disabled) { background: var(--panel-2); filter: none; }
-.btn.small { padding: 7px 12px; font-size: 12.5px; border-radius: 11px; }
-.btn.icon-only { padding: 7px 10px; }
+.btn.small { padding: 7px 14px; font-size: 12.5px; }
+.btn.icon-only { padding: 8px; border-radius: 50%; }
 .btn.danger-text { color: var(--red); }
 .btn:disabled { opacity: .38; cursor: not-allowed; }
 
@@ -333,8 +382,23 @@ body::before {
 .field textarea { resize: vertical; min-height: 50px; line-height: 1.45; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 
-.switch { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); cursor: pointer; }
-.switch input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.switch { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dim); cursor: pointer; }
+/* Настоящий iOS-тумблер вместо чекбокса: трек + бегунок через ::after */
+.switch input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; margin: 0;
+  width: 46px; height: 28px; border-radius: 999px; flex: none;
+  background: var(--panel-3); border: 1px solid var(--border-soft);
+  position: relative; cursor: pointer;
+  transition: background .25s ease, border-color .25s ease;
+}
+.switch input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 22px; height: 22px; border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  transition: transform .3s var(--spring);
+}
+.switch input[type="checkbox"]:checked { background: var(--green); border-color: transparent; }
+.switch input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .check-row { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 
 .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 15px; padding: 3px; gap: 3px; }
@@ -465,11 +529,16 @@ body::before {
   border: 2px solid var(--border); background: transparent;
   font-size: 14px; font-weight: 800; line-height: 1; color: transparent;
   display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
+  transition: background .15s, border-color .15s, box-shadow .15s;
 }
 .check-btn:hover { border-color: var(--green); }
-.check-btn.checked { background: var(--green); border-color: var(--green); color: #06281c; box-shadow: 0 4px 14px -4px rgba(52,211,153,.5); }
+.check-btn.checked {
+  background: var(--green); border-color: var(--green); color: #06281c;
+  box-shadow: 0 4px 14px -4px rgba(52,211,153,.5);
+  animation: checkPop .35s var(--spring);
+}
 .check-btn.small { width: 23px; height: 23px; font-size: 12px; }
+@keyframes checkPop { 0% { transform: scale(.7); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
 .checklist { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
 .cl-item { display: flex; align-items: flex-start; gap: 7px; font-size: 12.5px; color: var(--text-dim); cursor: pointer; line-height: 1.35; }
@@ -565,17 +634,22 @@ body::before {
   gap: 12px;
 }
 .account-card {
-  position: relative;
+  position: relative; overflow: hidden;
   background: linear-gradient(160deg, var(--panel-2), var(--panel));
   border: 1px solid var(--border-soft);
-  border-radius: var(--radius); padding: 16px;
-  box-shadow: 0 10px 24px -10px rgba(0,0,0,.5);
+  border-radius: var(--radius-lg); padding: 16px;
+  box-shadow: 0 14px 30px -12px rgba(0,0,0,.5);
   min-width: 0;
 }
 .account-card::before {
   content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--acc-color, var(--accent));
+}
+/* лёгкий диагональный блик, как на физической карте в Wallet */
+.account-card::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.06) 0%, transparent 45%);
 }
 .account-top { display: flex; align-items: flex-start; justify-content: space-between; }
 .account-ic {
@@ -712,7 +786,7 @@ body::before {
 .mood-btn {
   width: 48px; height: 48px; border-radius: 15px; cursor: pointer;
   border: 2px solid var(--border-soft); background: var(--panel-2);
-  font-size: 23px; transition: all .15s;
+  font-size: 23px; transition: border-color .15s, background .15s, transform .3s var(--spring), box-shadow .3s var(--spring);
 }
 .mood-btn:hover { border-color: var(--accent); }
 .mood-btn.on { border-color: var(--accent); background: rgba(139,92,246,.16); transform: scale(1.06); box-shadow: var(--shadow-accent); }
@@ -783,13 +857,13 @@ body::before {
 .ok-box { background: rgba(52,211,153,.12); color: var(--green); }
 .mini-box { background: var(--panel-2); color: var(--text-dim); }
 
-/* ---- Питание ---- */
-.macro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
-.macro-block.over .macro-pct { color: var(--red); }
-.macro-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; margin-bottom: 7px; }
-.macro-top b { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.macro-target { font-size: 11.5px; font-weight: 500; color: var(--text-faint); }
-.macro-pct { font-size: 11.5px; color: var(--text-faint); margin-top: 5px; }
+/* ---- Питание: кольца БЖУ, как Nutrition rings в Apple Health ---- */
+.macro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 16px; }
+.macro-block { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.macro-block .ring { margin: 0 auto; }
+.macro-name { font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
+.macro-target { font-size: 11px; font-weight: 500; color: var(--text-faint); }
+.macro-block.over .macro-target { color: var(--red); }
 
 .add-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .add-row .btn { flex: 1; min-width: 140px; justify-content: center; }
@@ -855,16 +929,18 @@ code {
 /* ============ Тосты и эффекты ============ */
 .toast-root { position: fixed; top: 18px; right: 18px; z-index: 999; display: flex; flex-direction: column; gap: 8px; max-width: min(340px, 88vw); }
 .toast {
-  background: var(--panel); border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--border-soft);
   border-left: 3px solid var(--accent); box-shadow: var(--shadow);
   border-radius: var(--radius-sm); padding: 13px 16px; font-size: 13.5px;
-  animation: slideIn .25s ease-out; line-height: 1.4;
+  animation: slideIn .35s var(--spring); line-height: 1.4;
 }
 .toast.out { animation: slideOut .25s ease-in forwards; }
 .toast.gold { border-left-color: var(--gold); }
 .toast.green { border-left-color: var(--green); }
 .toast.red { border-left-color: var(--red); }
-@keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideIn { from { transform: translateX(30px) scale(.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
 @keyframes slideOut { to { transform: translateX(30px); opacity: 0; } }
 
 .fx-root { position: fixed; inset: 0; pointer-events: none; z-index: 998; overflow: hidden; }
@@ -914,7 +990,7 @@ code {
   background: var(--panel); border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg); width: 100%; max-width: 540px;
   box-shadow: 0 30px 80px rgba(0,0,0,.55);
-  animation: pop .22s cubic-bezier(.2,1.2,.4,1);
+  animation: pop .3s var(--spring);
   max-height: 92vh; display: flex; flex-direction: column;
 }
 .modal-head {
@@ -982,4 +1058,27 @@ code {
   .big-number { font-size: 25px; }
   .form-grid { grid-template-columns: 1fr; }
   .search-input { max-width: none; }
+
+  /* Модалка на телефоне — bottom sheet, как в iOS, вместо центрированного попапа */
+  .modal-backdrop { align-items: flex-end; padding: 0; }
+  .modal {
+    max-width: none; max-height: 86vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: sheetUp .32s var(--spring);
+  }
+  .modal-head::before {
+    content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 36px; height: 4px; border-radius: 3px; background: var(--border);
+  }
+  .modal-head { position: relative; padding-top: 22px; }
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Уважаем системную настройку «уменьшить движение» */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
 }

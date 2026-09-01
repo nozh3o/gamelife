@@ -209,6 +209,24 @@ function donutSvg(parts, { size = 150, valueFmt = fmtMoney, showPct = true } = {
   </div>`;
 }
 
+/* Кольцо прогресса (Apple Activity Ring): одно значение 0–100%,
+   опционально крупная подпись и мелкая — в центре. */
+function ringSvg(pct, { size = 108, stroke = 10, color = 'var(--accent)', trackColor = 'var(--panel-2)', label = '', sub = '' } = {}) {
+  const r = (100 - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const frac = clamp(pct, 0, 100) / 100;
+  const dash = frac * c;
+  return `<div class="ring" style="width:${size}px;height:${size}px;">
+    <svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <circle cx="50" cy="50" r="${r}" fill="none" stroke="${trackColor}" stroke-width="${stroke}"></circle>
+      <circle class="ring-fill" cx="50" cy="50" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+        stroke-linecap="round" stroke-dasharray="${dash.toFixed(2)} ${(c - dash).toFixed(2)}"
+        transform="rotate(-90 50 50)"></circle>
+    </svg>
+    ${(label || sub) ? `<div class="ring-center">${label ? `<div class="ring-label">${esc(label)}</div>` : ''}${sub ? `<div class="ring-sub">${esc(sub)}</div>` : ''}</div>` : ''}
+  </div>`;
+}
+
 /* Тепловая карта активности (как на GitHub) */
 function heatmapHtml(activity, weeks = 20) {
   const cells = [];
