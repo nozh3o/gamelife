@@ -91,7 +91,7 @@ function workoutCardHtml(w) {
   return `<div class="card workout-card">
     <div class="flex-between">
       <div>
-        <div class="workout-title">🏋️ ${esc(w.title || 'Тренировка')}</div>
+        <div class="workout-title">${esc(w.title || 'Тренировка')}</div>
         <div class="text-dim" style="font-size:12px;margin-top:2px;">${fmtDateHuman(w.date)}${volume ? ` · объём ${fmtNum(volume)} кг` : ''}</div>
       </div>
       <div class="goal-actions">

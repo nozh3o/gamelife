@@ -6,9 +6,9 @@
 const taskFilters = { type: 'todo', tag: '' };
 
 const TASK_TYPES = [
-  { key: 'todo', label: 'Задачи', icon: '✅' },
-  { key: 'habit', label: 'Привычки', icon: '🔁' },
-  { key: 'daily', label: 'Ежедневки', icon: '📅' },
+  { key: 'todo', label: 'Задачи', icon: 'check' },
+  { key: 'habit', label: 'Привычки', icon: 'repeat' },
+  { key: 'daily', label: 'Ежедневки', icon: 'calendar' },
 ];
 const TASK_HINTS = {
   todo: 'Разовые дела. Записал — вычеркнул.',
@@ -37,7 +37,7 @@ function renderTasks() {
     </div>
 
     <div class="seg wfull" id="typeSeg">
-      ${TASK_TYPES.map(t => `<button class="seg-btn ${type === t.key ? 'on' : ''}" data-type="${t.key}">${t.icon} ${t.label}</button>`).join('')}
+      ${TASK_TYPES.map(t => `<button class="seg-btn ${type === t.key ? 'on' : ''}" data-type="${t.key}">${icon(t.icon, 15)} ${t.label}</button>`).join('')}
     </div>
 
     ${allTags.length ? `<div class="tag-filter mt16" id="tagFilter">
@@ -115,7 +115,7 @@ function habitCardHtml(h) {
 
   return `<div class="task-card habit ${toneClass}">
     <div class="task-body">
-      <div class="task-title">${esc(h.icon || '🔁')} ${esc(h.title)}</div>
+      <div class="task-title">${esc(h.title)}</div>
       ${h.note ? `<div class="task-note">${esc(h.note)}</div>` : ''}
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
@@ -142,7 +142,7 @@ function dailyCardHtml(d) {
 
   return `<div class="task-card daily ${done ? 'is-done' : ''} ${!due ? 'not-due' : ''}">
     <div class="task-body">
-      <div class="task-title ${done ? 'strike' : ''}">${esc(d.icon || '📅')} ${esc(d.title)}</div>
+      <div class="task-title ${done ? 'strike' : ''}">${esc(d.title)}</div>
       ${d.note ? `<div class="task-note ${done ? 'strike' : ''}">${esc(d.note)}</div>` : ''}
       ${(d.checklist || []).length ? `<div class="checklist">${d.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="daily:${d.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
@@ -290,9 +290,6 @@ function openTaskForm(type, id) {
 
   const body = `
     <form id="taskForm" class="form-grid">
-      ${type !== 'todo' ? `<label class="field" style="max-width:90px;">Иконка
-        <input type="text" name="icon" value="${esc(t.icon || (type === 'habit' ? '🔁' : '📅'))}" maxlength="4">
-      </label>` : ''}
       <label class="field" style="grid-column: 1/-1;">Название
         <input type="text" name="title" value="${esc(t.title || '')}" placeholder="Что нужно делать?" required autofocus>
       </label>
@@ -333,15 +330,13 @@ function openTaskForm(type, id) {
         if (type === 'habit') {
           const positive = !!f.get('positive');
           const negative = !!f.get('negative');
-          const data = { ...base, icon: String(f.get('icon') || '🔁').trim() || '🔁',
-            positive: positive || !negative, negative };
+          const data = { ...base, positive: positive || !negative, negative };
           if (existing) Object.assign(existing, data);
           else state.habits.push({ id: uid(), ...data, upCount: 0, downCount: 0, todayCount: 0, lastDay: null, history: [], createdAt: nowISO() });
         }
         if (type === 'daily') {
           const picked = f.getAll('day').map(Number);
-          const data = { ...base, icon: String(f.get('icon') || '📅').trim() || '📅',
-            days: picked.length ? picked : [0, 1, 2, 3, 4, 5, 6] };
+          const data = { ...base, days: picked.length ? picked : [0, 1, 2, 3, 4, 5, 6] };
           if (existing) { Object.assign(existing, data); recomputeStreak(existing); }
           else state.dailies.push({ id: uid(), ...data, history: [], streak: 0, best: 0, createdAt: nowISO() });
         }

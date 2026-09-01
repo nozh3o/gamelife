@@ -28,29 +28,29 @@
 <div id="fxRoot" class="fx-root"></div>
 <div id="modalRoot"></div>
 
-<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Меню">☰</button>
+<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Меню"><span data-icon="menu"></span></button>
 
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <span class="brand-icon">1️⃣</span>
+      <span class="brand-icon">1</span>
       <span class="brand-name">One</span>
     </div>
 
     <nav class="nav" id="mainNav">
       <div class="nav-indicator" id="navIndicator"></div>
-      <button class="nav-btn active" data-tab="home"><span class="nav-ic">🏠</span><span>Главная</span></button>
-      <button class="nav-btn" data-tab="tasks"><span class="nav-ic">✅</span><span>Задачи</span></button>
-      <button class="nav-btn" data-tab="goals"><span class="nav-ic">🎯</span><span>Цели</span></button>
-      <button class="nav-btn" data-tab="wishes"><span class="nav-ic">🌠</span><span>Карта желаний</span></button>
-      <button class="nav-btn" data-tab="journal"><span class="nav-ic">📔</span><span>Журнал</span></button>
+      <button class="nav-btn active" data-tab="home"><span class="nav-ic" data-icon="home"></span><span>Главная</span></button>
+      <button class="nav-btn" data-tab="tasks"><span class="nav-ic" data-icon="check"></span><span>Задачи</span></button>
+      <button class="nav-btn" data-tab="goals"><span class="nav-ic" data-icon="target"></span><span>Цели</span></button>
+      <button class="nav-btn" data-tab="wishes"><span class="nav-ic" data-icon="star"></span><span>Карта желаний</span></button>
+      <button class="nav-btn" data-tab="journal"><span class="nav-ic" data-icon="book"></span><span>Журнал</span></button>
 
       <div class="nav-group-label">Ресурсы</div>
-      <button class="nav-btn" data-tab="finance"><span class="nav-ic">💰</span><span>Финансы</span></button>
-      <button class="nav-btn" data-tab="nutrition"><span class="nav-ic">🥗</span><span>Питание</span></button>
-      <button class="nav-btn" data-tab="workouts"><span class="nav-ic">🏋️</span><span>Тренировки</span></button>
-      <button class="nav-btn" data-tab="stats"><span class="nav-ic">📊</span><span>Аналитика</span></button>
-      <button class="nav-btn" data-tab="settings"><span class="nav-ic">⚙️</span><span>Настройки</span></button>
+      <button class="nav-btn" data-tab="finance"><span class="nav-ic" data-icon="wallet"></span><span>Финансы</span></button>
+      <button class="nav-btn" data-tab="nutrition"><span class="nav-ic" data-icon="leaf"></span><span>Питание</span></button>
+      <button class="nav-btn" data-tab="workouts"><span class="nav-ic" data-icon="dumbbell"></span><span>Тренировки</span></button>
+      <button class="nav-btn" data-tab="stats"><span class="nav-ic" data-icon="chart"></span><span>Аналитика</span></button>
+      <button class="nav-btn" data-tab="settings"><span class="nav-ic" data-icon="sliders"></span><span>Настройки</span></button>
     </nav>
 
     <div class="sidebar-footer">
@@ -64,11 +64,11 @@
 
 <nav class="bottom-nav" id="bottomNav">
   <div class="bn-indicator" id="bnIndicator"></div>
-  <button class="nav-btn bn-btn" data-tab="home"><span class="bn-ic">🏠</span><span class="bn-label">Главная</span></button>
-  <button class="nav-btn bn-btn" data-tab="tasks"><span class="bn-ic">✅</span><span class="bn-label">Задачи</span></button>
-  <button class="nav-btn bn-btn" data-tab="finance"><span class="bn-ic">💰</span><span class="bn-label">Финансы</span></button>
-  <button class="nav-btn bn-btn" data-tab="nutrition"><span class="bn-ic">🥗</span><span class="bn-label">Питание</span></button>
-  <button class="bn-btn bn-more" id="bottomMoreBtn"><span class="bn-ic">☰</span><span class="bn-label">Ещё</span></button>
+  <button class="nav-btn bn-btn" data-tab="home"><span class="bn-ic" data-icon="home"></span><span class="bn-label">Главная</span></button>
+  <button class="nav-btn bn-btn" data-tab="tasks"><span class="bn-ic" data-icon="check"></span><span class="bn-label">Задачи</span></button>
+  <button class="nav-btn bn-btn" data-tab="finance"><span class="bn-ic" data-icon="wallet"></span><span class="bn-label">Финансы</span></button>
+  <button class="nav-btn bn-btn" data-tab="nutrition"><span class="bn-ic" data-icon="leaf"></span><span class="bn-label">Питание</span></button>
+  <button class="bn-btn bn-more" id="bottomMoreBtn"><span class="bn-ic" data-icon="menu"></span><span class="bn-label">Ещё</span></button>
 </nav>
 
 <script src="js/state.js"></script>

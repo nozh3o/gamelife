@@ -30,9 +30,9 @@ function renderHome() {
     </div>
 
     <div class="add-row" style="margin-top:0;">
-      <button class="btn primary" data-quick="expense">💸 Трата</button>
-      <button class="btn" data-quick="meal">🍽️ Приём пищи</button>
-      <button class="btn" data-quick="journal">📔 Запись в журнал</button>
+      <button class="btn primary" data-quick="expense">${icon('wallet', 15)} Трата</button>
+      <button class="btn" data-quick="meal">${icon('utensils', 15)} Приём пищи</button>
+      <button class="btn" data-quick="journal">${icon('book', 15)} Запись в журнал</button>
     </div>
 
     ${bangkokCountdownHtml()}
@@ -59,7 +59,7 @@ function renderHome() {
         return `<div class="row-item compact ${done ? 'done' : ''}">
           <button class="check-btn small ${done ? 'checked' : ''}" data-home-daily="${d.id}">${done ? '✓' : ''}</button>
           <div class="main">
-            <div class="title ${done ? 'strike' : ''}">${esc(d.icon || '📅')} ${esc(d.title)}</div>
+            <div class="title ${done ? 'strike' : ''}">${esc(d.title)}</div>
             <div class="meta">${diffChip(d.difficulty)}<span class="chip ${d.streak ? 'gold' : ''}">🔥 ${d.streak}</span></div>
           </div>
         </div>`;

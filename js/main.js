@@ -145,6 +145,8 @@ function applyTheme() {
 
 /* ---- Запуск ------------------------------------------------------------- */
 function init() {
+  renderStaticIcons();
+
   // ярлыки приложения открывают нужную вкладку: index.html#tasks
   const hash = location.hash.replace('#', '');
   if (TAB_RENDERERS[hash]) currentTab = hash;

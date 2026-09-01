@@ -45,7 +45,7 @@ function renderWishes() {
 function wishCardHtml(w) {
   return `<div class="card wish-card ${w.done ? 'is-done' : ''}">
     <div class="wish-media">
-      ${w.image ? `<img src="${w.image}" class="wish-img" alt="">` : `<div class="wish-ic">${esc(w.icon || '✨')}</div>`}
+      ${w.image ? `<img src="${w.image}" class="wish-img" alt="">` : `<div class="wish-ic">${wishIconHtml(w.icon)}</div>`}
     </div>
     <div class="wish-body">
       <div class="wish-title">${esc(w.title)}</div>
@@ -91,7 +91,14 @@ function bindWishHandlers() {
   }));
 }
 
-const WISH_ICONS = ['✨', '🏝️', '🏠', '✈️', '💰', '📚', '🎓', '🚗', '💪', '❤️', '🎸', '🌍'];
+const WISH_ICONS = ['sparkle', 'palm', 'home', 'plane', 'wallet', 'book', 'cap', 'car', 'dumbbell', 'heart', 'music', 'globe'];
+
+/* Иконка желания хранится ключом набора ICONS; если в данных остался
+   старый эмодзи-символ (записи до этого перехода) — просто показываем
+   его как есть, чтобы старые желания не остались без картинки вовсе. */
+function wishIconHtml(key) {
+  return ICONS[key] ? icon(key, 40) : esc(key || '✨');
+}
 
 function openWishForm(id) {
   const existing = id ? state.wishes.find(x => x.id === id) : null;
@@ -107,9 +114,9 @@ function openWishForm(id) {
       </label>
       <div class="field" style="grid-column: 1/-1;">Иконка (если без картинки)
         <div class="avatar-picker" id="wishIconPicker">
-          ${WISH_ICONS.map(ic => `<button type="button" class="avatar-opt ${(w.icon || '✨') === ic ? 'on' : ''}" data-icon="${ic}">${ic}</button>`).join('')}
+          ${WISH_ICONS.map(ic => `<button type="button" class="avatar-opt ${(w.icon || 'sparkle') === ic ? 'on' : ''}" data-icon="${ic}" title="${ic}">${icon(ic, 19)}</button>`).join('')}
         </div>
-        <input type="hidden" name="icon" value="${esc(w.icon || '✨')}">
+        <input type="hidden" name="icon" value="${esc(w.icon || 'sparkle')}">
       </div>
       <label class="field" style="grid-column: 1/-1;">Картинка для настроения (необязательно)
         <input type="file" name="image" accept="image/*">
@@ -157,7 +164,7 @@ function openWishForm(id) {
       const data = {
         title,
         note: String(f.get('note') || '').trim(),
-        icon: String(f.get('icon') || '✨').trim() || '✨',
+        icon: String(f.get('icon') || 'sparkle').trim() || 'sparkle',
         image,
       };
 
