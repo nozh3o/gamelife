@@ -354,8 +354,8 @@ body::before {
   transition: background .15s, color .15s;
 }
 .seg-btn.on { background: var(--accent); color: #fff; box-shadow: var(--shadow-accent); }
-
-.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+.seg.wfull { display: flex; width: 100%; }
+.seg.wfull .seg-btn { flex: 1; }
 .search-input {
   padding: 10px 14px; border-radius: 13px;
   border: 1px solid var(--border-soft); background: var(--panel); color: var(--text);
@@ -444,16 +444,6 @@ body::before {
 .phrase-mark { font-size: 30px; line-height: 1; color: var(--accent-2); flex: none; font-weight: 800; }
 .phrase-text { margin: 4px 0 0; font-size: 15px; font-weight: 600; line-height: 1.5; font-style: italic; }
 
-/* ============ Три колонки задач ============ */
-.task-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
-.task-col {
-  background: var(--bg-soft); border: 1px solid var(--border-soft);
-  border-radius: var(--radius); padding: 16px;
-}
-.col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.col-head h2 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: -.1px; }
-.col-head h2 small { color: var(--text-faint); font-weight: 500; font-size: 12px; }
-.col-hint { font-size: 11.5px; color: var(--text-faint); margin: 6px 0 12px; line-height: 1.45; }
 .col-divider {
   font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
   color: var(--text-faint); margin: 14px 0 4px; font-weight: 700;
@@ -811,7 +801,6 @@ code {
 
 /* ============ Адаптив ============ */
 @media (max-width: 1100px) {
-  .task-columns { grid-template-columns: 1fr 1fr; }
   .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
@@ -846,7 +835,6 @@ code {
   .btn.icon-only { padding: 9px 12px; }
   .cl-item { padding: 3px 0; }
   .cl-item input { width: 18px; height: 18px; }
-  .task-columns { grid-template-columns: 1fr; }
   .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) {

@@ -16,6 +16,10 @@
 
 const SYNC_KEY = 'gamelife_sync_v1';
 const STATE_BACKUP_KEY = 'gamelife_state_backup';
+// одноразовая метка: ставит resetAll() перед намеренным полным сбросом,
+// чтобы синхронизация знала, что пустое состояние — это осознанный выбор,
+// а не случайно опустевшее хранилище (переустановка приложения и т.п.)
+const INTENTIONAL_RESET_KEY = 'gamelife_intentional_reset';
 const PUSH_DEBOUNCE_MS = 4000;
 
 // Проект и функция по умолчанию — общие для всех, кто открыл приложение
@@ -165,6 +169,25 @@ function applyRemoteState(data) {
   renderAll();
 }
 
+/* Есть ли в состоянии хоть что-то настоящее — задачи, финансы, дневник и т.д.
+   Нужно, чтобы отличить «реально пустой прогресс» от «переустановил
+   приложение / почистил браузер, хранилище обнулилось» — оба случая
+   дают одинаково пустой state, но пустое хранилище получает свежую метку
+   времени и по одним таймстемпам выглядит «новее» настоящих данных. */
+function hasRealContent(s) {
+  if (!s) return false;
+  return !!(
+    (s.todos && s.todos.length) ||
+    (s.dailies && s.dailies.length) ||
+    (s.habits && s.habits.length) ||
+    (s.goals && s.goals.length) ||
+    (s.journal && s.journal.length) ||
+    (s.log && s.log.length) ||
+    (s.finance && s.finance.transactions && s.finance.transactions.length) ||
+    (s.nutrition && s.nutrition.entries && s.nutrition.entries.length)
+  );
+}
+
 /* ---- Основной алгоритм ---------------------------------------------------- */
 async function syncNow(manual = false) {
   if (!syncSignedIn() || syncBusy) return;
@@ -190,6 +213,33 @@ async function syncNow(manual = false) {
     const localAt = state.updatedAt || 0;
     const localChanged = localAt > syncCfg.lastSyncAt;
     const remoteChanged = remoteAt > syncCfg.lastRemoteAt;
+
+    // «Удалить всё» в Настройках ставит одноразовую метку — тогда пустому
+    // состоянию доверяем как есть. Иначе пустое устройство не должно
+    // затирать чужой настоящий прогресс просто потому, что его метка
+    // времени свежее.
+    let intentionalReset = false;
+    try {
+      intentionalReset = localStorage.getItem(INTENTIONAL_RESET_KEY) === '1';
+      if (intentionalReset) localStorage.removeItem(INTENTIONAL_RESET_KEY);
+    } catch (e) {}
+
+    if (!intentionalReset && (localChanged || remoteChanged)) {
+      const localEmpty = !hasRealContent(state);
+      const remoteEmpty = !hasRealContent(remote.data);
+      if (localEmpty && !remoteEmpty) {
+        applyRemoteState(remote.data);
+        markSynced({ updated_at: remote.updated_at });
+        toast('☁️ Это устройство было пустым — подтянул настоящий прогресс из облака', 'gold');
+        return;
+      }
+      if (remoteEmpty && !localEmpty) {
+        const row = await pushRemote();
+        markSynced(row);
+        toast('⚠️ В облаке оказалось пусто — выгрузил туда прогресс с этого устройства', 'red');
+        return;
+      }
+    }
 
     if (!localChanged && !remoteChanged) {
       markSynced({ updated_at: remote.updated_at });

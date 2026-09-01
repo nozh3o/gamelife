@@ -1,11 +1,24 @@
 /* =========================================================================
-   views-tasks.js — три колонки задач в духе Habitica:
-   Привычки (+/−), Ежедневки (расписание и стрики), Задачи (разовые, с чек-листом)
+   views-tasks.js — Задачи / Привычки / Ежедневки: один список на экране,
+   переключение сегментированным контролом сверху (в стиле iOS)
    ========================================================================= */
 
-const taskFilters = { q: '', tag: '', showDone: false };
+const taskFilters = { type: 'todo', tag: '', showDone: false };
+
+const TASK_TYPES = [
+  { key: 'todo', label: 'Задачи', icon: '✅' },
+  { key: 'habit', label: 'Привычки', icon: '🔁' },
+  { key: 'daily', label: 'Ежедневки', icon: '📅' },
+];
+const TASK_HINTS = {
+  todo: 'Разовые дела со сроком и чек-листом. За просрочку не наказывают.',
+  habit: 'Нажимаешь «+» сколько раз сделал за день, «−» — если сорвался.',
+  daily: 'Отмечаешь раз в день по расписанию — ведёт стрик «дней подряд».',
+};
+const TASK_ADD_LABEL = { todo: 'задачу', habit: 'привычку', daily: 'ежедневку' };
 
 function renderTasks() {
+  const type = taskFilters.type;
   const allTags = [...new Set([
     ...state.habits.flatMap(t => t.tags || []),
     ...state.dailies.flatMap(t => t.tags || []),
@@ -16,99 +29,81 @@ function renderTasks() {
     <div class="page-head">
       <div>
         <h1 class="page-title">Задачи</h1>
-        <p class="page-sub">Привычки отмечаешь сколько угодно раз, ежедневки — раз в день по расписанию, задачи — разово.</p>
+        <p class="page-sub">${TASK_HINTS[type]}</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn primary" id="addTaskBtn">＋ Добавить ${TASK_ADD_LABEL[type]}</button>
       </div>
     </div>
 
-    <div class="toolbar">
-      <input type="search" id="taskSearch" class="search-input" placeholder="🔎 Поиск по названию…" value="${esc(taskFilters.q)}">
-      <div class="tag-filter" id="tagFilter">
-        <button class="chip-btn ${!taskFilters.tag ? 'on' : ''}" data-tag="">Все</button>
-        ${allTags.map(t => `<button class="chip-btn ${taskFilters.tag === t ? 'on' : ''}" data-tag="${esc(t)}">#${esc(t)}</button>`).join('')}
-      </div>
-      <label class="switch"><input type="checkbox" id="showDone" ${taskFilters.showDone ? 'checked' : ''}><span>Показывать выполненные</span></label>
+    <div class="seg wfull" id="typeSeg">
+      ${TASK_TYPES.map(t => `<button class="seg-btn ${type === t.key ? 'on' : ''}" data-type="${t.key}">${t.icon} ${t.label}</button>`).join('')}
     </div>
 
-    <div class="task-columns">
-      <section class="task-col">
-        <div class="col-head">
-          <h2>🔁 Привычки <small>${state.habits.length}</small></h2>
-          <button class="btn primary small" data-add="habit">＋</button>
-        </div>
-        <p class="col-hint">Хорошее нажимаешь «+», плохое — «−». Просто счётчик: сколько раз сделал и сколько сорвался.</p>
-        <div class="list" id="habitList"></div>
-      </section>
+    ${allTags.length ? `<div class="tag-filter mt16" id="tagFilter">
+      <button class="chip-btn ${!taskFilters.tag ? 'on' : ''}" data-tag="">Все</button>
+      ${allTags.map(tag => `<button class="chip-btn ${taskFilters.tag === tag ? 'on' : ''}" data-tag="${esc(tag)}">#${esc(tag)}</button>`).join('')}
+    </div>` : ''}
 
-      <section class="task-col">
-        <div class="col-head">
-          <h2>📅 Ежедневки <small>${state.dailies.length}</small></h2>
-          <button class="btn primary small" data-add="daily">＋</button>
-        </div>
-        <p class="col-hint">Если не выполнить в запланированный день — стрик сгорит.</p>
-        <div class="list" id="dailyList"></div>
-      </section>
+    ${type === 'todo' ? `<label class="switch mt16"><input type="checkbox" id="showDone" ${taskFilters.showDone ? 'checked' : ''}><span>Показывать выполненные</span></label>` : ''}
 
-      <section class="task-col">
-        <div class="col-head">
-          <h2>✅ Задачи <small>${state.todos.filter(t => !t.done).length}</small></h2>
-          <button class="btn primary small" data-add="todo">＋</button>
-        </div>
-        <p class="col-hint">Разовые дела. За просрочку не наказывают — только напоминают.</p>
-        <div class="list" id="todoList"></div>
-      </section>
-    </div>`;
+    <div class="list mt16" id="taskList"></div>`;
 
-  // фильтры
-  const search = document.getElementById('taskSearch');
-  search.addEventListener('input', () => {
-    taskFilters.q = search.value;
-    renderTaskLists();
+  document.getElementById('addTaskBtn').addEventListener('click', () => openTaskForm(type));
+
+  document.getElementById('typeSeg').addEventListener('click', e => {
+    const b = e.target.closest('[data-type]');
+    if (!b || b.dataset.type === taskFilters.type) return;
+    taskFilters.type = b.dataset.type;
+    renderTasks();
   });
-  document.getElementById('tagFilter').addEventListener('click', e => {
+
+  const tagFilterEl = document.getElementById('tagFilter');
+  if (tagFilterEl) tagFilterEl.addEventListener('click', e => {
     const b = e.target.closest('[data-tag]');
     if (!b) return;
     taskFilters.tag = b.dataset.tag;
     renderTasks();
   });
-  document.getElementById('showDone').addEventListener('change', e => {
+
+  const showDoneEl = document.getElementById('showDone');
+  if (showDoneEl) showDoneEl.addEventListener('change', e => {
     taskFilters.showDone = e.target.checked;
     renderTaskLists();
   });
-  content().querySelectorAll('[data-add]').forEach(b =>
-    b.addEventListener('click', () => openTaskForm(b.dataset.add)));
 
   renderTaskLists();
 }
 
 function matchesFilter(t) {
-  const q = taskFilters.q.trim().toLowerCase();
-  if (q && !String(t.title).toLowerCase().includes(q) && !String(t.note || '').toLowerCase().includes(q)) return false;
   if (taskFilters.tag && !(t.tags || []).includes(taskFilters.tag)) return false;
   return true;
 }
 
 function renderTaskLists() {
-  const habits = state.habits.filter(matchesFilter);
-  const dailies = state.dailies.filter(matchesFilter);
-  const todos = state.todos.filter(matchesFilter);
+  const list = document.getElementById('taskList');
+  if (!list) return;
+  const type = taskFilters.type;
 
-  const hl = document.getElementById('habitList');
-  hl.innerHTML = habits.length ? habits.map(habitCardHtml).join('')
-    : `<div class="empty-hint">Нет привычек. Например: «выпить воды», «залипнуть в телефон» (со знаком минус).</div>`;
-
-  const dueFirst = [...dailies].sort((a, b) => (isDailyDueToday(b) ? 1 : 0) - (isDailyDueToday(a) ? 1 : 0));
-  const dl = document.getElementById('dailyList');
-  dl.innerHTML = dueFirst.length ? dueFirst.map(dailyCardHtml).join('')
-    : `<div class="empty-hint">Нет ежедневок. Например: «зарядка», «30 минут чтения».</div>`;
-
-  const active = todos.filter(t => !t.done)
-    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt.localeCompare(a.createdAt));
-  const done = todos.filter(t => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
-  const tl = document.getElementById('todoList');
-  tl.innerHTML = (active.length ? active.map(todoCardHtml).join('') : `<div class="empty-hint">Активных задач нет</div>`)
-    + (taskFilters.showDone && done.length
-      ? `<div class="col-divider">Выполнено (${done.length})</div>` + done.slice(0, 40).map(todoCardHtml).join('')
-      : '');
+  if (type === 'habit') {
+    const items = state.habits.filter(matchesFilter);
+    list.innerHTML = items.length ? items.map(habitCardHtml).join('')
+      : `<div class="empty-hint">Нет привычек. Например: «выпить воды», «залипнуть в телефон» (со знаком минус).</div>`;
+  } else if (type === 'daily') {
+    const items = state.dailies.filter(matchesFilter);
+    const dueFirst = [...items].sort((a, b) => (isDailyDueToday(b) ? 1 : 0) - (isDailyDueToday(a) ? 1 : 0));
+    list.innerHTML = dueFirst.length ? dueFirst.map(dailyCardHtml).join('')
+      : `<div class="empty-hint">Нет ежедневок. Например: «зарядка», «30 минут чтения».</div>`;
+  } else {
+    const items = state.todos.filter(matchesFilter);
+    const active = items.filter(t => !t.done)
+      .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt.localeCompare(a.createdAt));
+    const done = items.filter(t => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
+    list.innerHTML = (active.length ? active.map(todoCardHtml).join('') : `<div class="empty-hint">Активных задач нет</div>`)
+      + (taskFilters.showDone && done.length
+        ? `<div class="col-divider">Выполнено (${done.length})</div>` + done.slice(0, 40).map(todoCardHtml).join('')
+        : '');
+  }
 
   bindTaskHandlers();
 }

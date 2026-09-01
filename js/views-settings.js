@@ -228,6 +228,9 @@ function resetAll() {
   confirmAction('Это удалит ВСЕ данные без возможности вернуть: задачи, стрики, цели, финансы и журнал. Точно?', () => {
     confirmAction('Последнее предупреждение. Бэкап сделан?', () => {
       state = defaultState();
+      // помечаем сброс как осознанный — иначе синхронизация примет пустое
+      // состояние за случайно опустевшее хранилище и подтянет старые данные назад
+      try { localStorage.setItem(INTENTIONAL_RESET_KEY, '1'); } catch (e) {}
       saveState();
       applyTheme();
       currentTab = 'home';
