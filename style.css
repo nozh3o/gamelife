@@ -66,7 +66,7 @@ body {
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  touch-action: pan-x pan-y; /* только скролл — ни щипок, ни двойной тап не зумят */
+  touch-action: pan-y; /* только вертикальный скролл — ни зума, ни бокового свайпа впустую */
 }
 button, input, select, textarea { font-family: inherit; color: inherit; }
 ::selection { background: var(--accent); color: #fff; }
@@ -650,7 +650,7 @@ body::before {
 .legend-val { color: var(--text); font-weight: 600; flex: none; font-variant-numeric: tabular-nums; }
 .legend-pct { color: var(--text-faint); font-weight: 700; }
 
-.heatmap-wrap { overflow-x: auto; padding-bottom: 4px; }
+.heatmap-wrap { overflow-x: auto; padding-bottom: 4px; touch-action: pan-x pan-y; }
 .heatmap { display: flex; gap: 3px; min-width: max-content; }
 .hm-col { display: flex; flex-direction: column; gap: 3px; }
 .hm-cell { width: 12px; height: 12px; border-radius: 4px; background: var(--panel-2); }
@@ -752,7 +752,7 @@ code {
 .sql-box { position: relative; }
 .sql-box .btn { position: absolute; top: 9px; right: 9px; z-index: 2; }
 .sql-box pre {
-  margin: 0; padding: 14px; overflow-x: auto;
+  margin: 0; padding: 14px; overflow-x: auto; touch-action: pan-x pan-y;
   background: var(--panel-2); border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
   font-family: Consolas, "Courier New", monospace;
