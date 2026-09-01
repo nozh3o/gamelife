@@ -58,7 +58,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+html, body { height: 100%; overscroll-behavior-y: none; }
 body {
   margin: 0;
   background: var(--bg);
@@ -101,6 +101,7 @@ body::before {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   z-index: 50;
 }
 .brand {
@@ -810,6 +811,7 @@ code {
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   z-index: 900; padding: 20px; overflow-y: auto;
+  overscroll-behavior-y: contain;
   animation: fadeIn .18s ease-out;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -825,7 +827,7 @@ code {
   padding: 19px 22px 14px; border-bottom: 1px solid var(--border-soft);
 }
 .modal-head h3 { margin: 0; font-size: 17px; letter-spacing: -.2px; }
-.modal-body { padding: 20px 22px 22px; overflow-y: auto; }
+.modal-body { padding: 20px 22px 22px; overflow-y: auto; overscroll-behavior-y: contain; }
 
 /* ============ Адаптив ============ */
 @media (max-width: 1100px) {
