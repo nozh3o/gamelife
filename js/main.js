@@ -120,13 +120,21 @@ function init() {
   });
 
   const sidebar = document.getElementById('sidebar');
-  document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-    sidebar.classList.toggle('open');
+  const toggleSidebar = () => sidebar.classList.toggle('open');
+  document.getElementById('mobileMenuBtn').addEventListener('click', toggleSidebar);
+
+  // нижняя панель на телефоне: прямые разделы работают как обычная навигация,
+  // «Ещё» открывает ту же боковую панель со всем списком
+  document.getElementById('bottomNav').addEventListener('click', e => {
+    const tabBtn = e.target.closest('.nav-btn[data-tab]');
+    if (tabBtn) { goTab(tabBtn.dataset.tab); return; }
+    if (e.target.closest('#bottomMoreBtn')) toggleSidebar();
   });
+
   // на телефоне меню закрывается тапом мимо него
   document.addEventListener('click', e => {
     if (!sidebar.classList.contains('open')) return;
-    if (sidebar.contains(e.target) || e.target.closest('#mobileMenuBtn')) return;
+    if (sidebar.contains(e.target) || e.target.closest('#mobileMenuBtn') || e.target.closest('#bottomMoreBtn')) return;
     sidebar.classList.remove('open');
   });
 
