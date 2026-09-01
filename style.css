@@ -641,6 +641,38 @@ body::before {
 .exercise-name { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
 .exercise-sets { display: flex; gap: 5px; flex-wrap: wrap; }
 
+/* Редактор упражнений в форме: имя — текстом, вес/повторы — колёсиком выбора
+   (нативный <select> — на телефоне открывает системную «крутилку» iOS/Android,
+   на компьютере обычный выпадающий список — и то, и другое листается скроллом) */
+.field-label { display: block; font-size: 12.5px; color: var(--text-dim); font-weight: 500; margin-bottom: 6px; }
+.ex-editor { display: flex; flex-direction: column; gap: 10px; }
+.ex-editor-item {
+  background: var(--panel-2); border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm); padding: 12px;
+}
+.ex-editor-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ex-name-input {
+  flex: 1; min-width: 0; padding: 9px 12px; border-radius: 11px;
+  border: 1px solid var(--border-soft); background: var(--panel);
+  color: var(--text); font-size: 13.5px; font-weight: 600; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.ex-name-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.ex-sets { display: flex; flex-direction: column; gap: 7px; }
+.ex-set-row { display: flex; align-items: center; gap: 8px; }
+.set-pick {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--panel); border: 1px solid var(--border-soft);
+  border-radius: 11px; padding: 5px 6px 5px 13px;
+}
+.wheel-select {
+  appearance: none; -webkit-appearance: none; border: none; background: transparent;
+  color: var(--text); font-size: 15px; font-weight: 700; outline: none; cursor: pointer;
+  font-variant-numeric: tabular-nums; padding: 3px 2px; max-width: 60px;
+}
+.set-unit { font-size: 10.5px; color: var(--text-faint); font-weight: 600; padding-right: 3px; }
+.set-x { color: var(--text-faint); font-size: 12px; flex: none; }
+
 /* ============ Журнал ============ */
 .mood-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .mood-btn {

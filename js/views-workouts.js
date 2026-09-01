@@ -125,30 +125,75 @@ function bindWorkoutHandlers() {
   }));
 }
 
-/* ---- Разбор строк вида «Жим лёжа | 60x8, 65x6, 65x5» ---------------------- */
-function parseExercisesText(text) {
-  return String(text || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-    const [namePart, setsPart] = line.split('|');
-    const sets = String(setsPart || '').split(',').map(s => s.trim()).filter(Boolean).map(tok => {
-      const m = tok.match(/^([\d.]+)\s*[xх×*]\s*([\d.]+)$/i);
-      if (m) return { weight: Number(m[1]) || 0, reps: Number(m[2]) || 0 };
-      const reps = Number(tok);
-      return { weight: 0, reps: Number.isFinite(reps) ? reps : 0 };
-    }).filter(s => s.reps > 0 || s.weight > 0);
-    return { id: uid(), name: (namePart || '').trim() || 'Упражнение', sets };
-  }).filter(ex => ex.sets.length);
+/* ---- Редактор упражнений в форме: имя — текстом, вес/повторы — скроллом --- */
+const WEIGHT_OPTIONS = Array.from({ length: 301 }, (_, i) => i);   // 0..300 кг
+const REP_OPTIONS = Array.from({ length: 100 }, (_, i) => i + 1);  // 1..100 повторов
+
+function nearestOption(v, options, fallback) {
+  v = Math.round(Number(v));
+  if (!Number.isFinite(v)) return fallback;
+  if (options.includes(v)) return v;
+  return options.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a, options[0]);
 }
-function exercisesToText(exercises) {
-  return (exercises || []).map(ex => {
-    const setsStr = (ex.sets || []).map(s => s.weight ? `${s.weight}x${s.reps}` : `${s.reps}`).join(', ');
-    return `${ex.name} | ${setsStr}`;
-  }).join('\n');
+
+function setRowHtml(s) {
+  const w = nearestOption(s ? s.weight : 0, WEIGHT_OPTIONS, 0);
+  const r = nearestOption(s ? s.reps : 10, REP_OPTIONS, 10);
+  return `<div class="ex-set-row">
+    <div class="set-pick">
+      <select class="wheel-select weight-select">${WEIGHT_OPTIONS.map(v => `<option value="${v}"${v === w ? ' selected' : ''}>${v}</option>`).join('')}</select>
+      <span class="set-unit">кг</span>
+    </div>
+    <span class="set-x">×</span>
+    <div class="set-pick">
+      <select class="wheel-select reps-select">${REP_OPTIONS.map(v => `<option value="${v}"${v === r ? ' selected' : ''}>${v}</option>`).join('')}</select>
+      <span class="set-unit">повт</span>
+    </div>
+    <button type="button" class="btn ghost small icon-only" data-remove-set title="Убрать подход">✕</button>
+  </div>`;
+}
+
+function exerciseBlockHtml(ex) {
+  const sets = (ex && ex.sets && ex.sets.length) ? ex.sets : [null];
+  return `<div class="ex-editor-item">
+    <div class="ex-editor-head">
+      <input type="text" class="ex-name-input" placeholder="Название упражнения" value="${esc(ex ? ex.name : '')}">
+      <button type="button" class="btn ghost small icon-only" data-remove-ex title="Удалить упражнение">✕</button>
+    </div>
+    <div class="ex-sets">${sets.map(setRowHtml).join('')}</div>
+    <button type="button" class="btn ghost small" data-add-set>+ Подход</button>
+  </div>`;
+}
+
+/* при добавлении нового подхода удобнее не начинать с нуля, а повторить
+   вес/повторы последнего — обычно в тренировке подходы похожи друг на друга */
+function lastSetValues(block) {
+  const rows = block.querySelectorAll('.ex-set-row');
+  if (!rows.length) return null;
+  const last = rows[rows.length - 1];
+  return {
+    weight: Number(last.querySelector('.weight-select').value) || 0,
+    reps: Number(last.querySelector('.reps-select').value) || 10,
+  };
+}
+
+function readExercisesFromEditor(editor) {
+  return [...editor.querySelectorAll('.ex-editor-item')].map(block => {
+    const name = block.querySelector('.ex-name-input').value.trim();
+    const sets = [...block.querySelectorAll('.ex-set-row')].map(row => ({
+      weight: Number(row.querySelector('.weight-select').value) || 0,
+      reps: Number(row.querySelector('.reps-select').value) || 0,
+    })).filter(s => s.reps > 0 || s.weight > 0);
+    return { name, sets };
+  }).filter(ex => ex.name && ex.sets.length)
+    .map(ex => ({ id: uid(), name: ex.name, sets: ex.sets }));
 }
 
 /* ---- Форма тренировки ------------------------------------------------------ */
 function openWorkoutForm(id) {
   const existing = id ? state.workouts.find(x => x.id === id) : null;
   const w = existing || {};
+  const exercises = (w.exercises && w.exercises.length) ? w.exercises : [null];
 
   const body = `
     <form id="workoutForm" class="form-grid">
@@ -158,14 +203,17 @@ function openWorkoutForm(id) {
       <label class="field">Дата
         <input type="date" name="date" value="${esc(w.date || todayStr())}" max="${todayStr()}">
       </label>
+
+      <div style="grid-column: 1/-1;">
+        <span class="field-label">Упражнения</span>
+        <div class="ex-editor" id="exEditor">${exercises.map(exerciseBlockHtml).join('')}</div>
+        <button type="button" class="btn ghost small mt8" id="addExerciseBtn">+ Упражнение</button>
+      </div>
+
       <label class="field" style="grid-column: 1/-1;">Заметка (необязательно)
         <textarea name="note" rows="2" placeholder="Самочувствие, что менять в следующий раз…">${esc(w.note || '')}</textarea>
       </label>
-      <label class="field" style="grid-column: 1/-1;">
-        Упражнения — по одному на строку: <code>название | вес×повторы, вес×повторы</code>
-        <textarea name="exercises" rows="5" placeholder="Жим лёжа | 60x8, 65x6, 65x5&#10;Приседания | 80x10, 90x8&#10;Планка | 60">${esc(exercisesToText(w.exercises))}</textarea>
-      </label>
-      <p class="text-dim" style="grid-column:1/-1;font-size:11.5px;margin:0;">Без веса — просто повторы (для планки, отжиманий и т.п.): «Отжимания | 15, 12, 10».</p>
+
       <div class="form-actions" style="grid-column: 1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
         <button type="submit" class="btn primary">${existing ? '💾 Сохранить' : '➕ Добавить'}</button>
@@ -173,6 +221,26 @@ function openWorkoutForm(id) {
     </form>`;
 
   openModal(existing ? 'Изменить тренировку' : 'Новая тренировка', body, modal => {
+    const editor = modal.querySelector('#exEditor');
+
+    modal.querySelector('#addExerciseBtn').addEventListener('click', () => {
+      editor.insertAdjacentHTML('beforeend', exerciseBlockHtml(null));
+      editor.lastElementChild.querySelector('.ex-name-input').focus();
+    });
+
+    editor.addEventListener('click', e => {
+      const addSetBtn = e.target.closest('[data-add-set]');
+      if (addSetBtn) {
+        const block = addSetBtn.closest('.ex-editor-item');
+        block.querySelector('.ex-sets').insertAdjacentHTML('beforeend', setRowHtml(lastSetValues(block)));
+        return;
+      }
+      const removeSetBtn = e.target.closest('[data-remove-set]');
+      if (removeSetBtn) { removeSetBtn.closest('.ex-set-row').remove(); return; }
+      const removeExBtn = e.target.closest('[data-remove-ex]');
+      if (removeExBtn) removeExBtn.closest('.ex-editor-item').remove();
+    });
+
     modal.querySelector('[data-cancel]').addEventListener('click', closeModal);
     modal.querySelector('#workoutForm').addEventListener('submit', e => {
       e.preventDefault();
@@ -184,7 +252,7 @@ function openWorkoutForm(id) {
         title,
         date: f.get('date') || todayStr(),
         note: String(f.get('note') || '').trim(),
-        exercises: parseExercisesText(f.get('exercises')),
+        exercises: readExercisesFromEditor(editor),
       };
 
       mutate(() => {
