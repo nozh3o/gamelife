@@ -117,7 +117,7 @@ function renderFinance() {
     <div class="page-head">
       <div>
         <h1 class="page-title">Финансы</h1>
-        <p class="page-sub">Настоящие деньги в ${esc(state.settings.currency)}. Несколько счетов, лимиты трат и куда всё уходит.</p>
+        <p class="page-sub">Настоящие деньги в ${esc(state.settings.currency)}.</p>
       </div>
       <div class="head-actions">
         <button class="btn" id="addAccount">${icon('plus',15)} Счёт</button>
@@ -125,22 +125,27 @@ function renderFinance() {
       </div>
     </div>
 
-    <div class="section-label">Счета <span class="chip">${state.finance.accounts.length}</span></div>
+    <div class="balance-hero">
+      <div class="balance-hero-top">
+        <span class="balance-hero-label">Общий баланс</span>
+        <span class="balance-hero-badge">${state.finance.accounts.length} ${plural(state.finance.accounts.length, 'счёт', 'счёта', 'счетов')}</span>
+      </div>
+      <div class="balance-hero-amount">${fmtMoney(balance)}</div>
+      <div class="balance-hero-sub">по всем счетам</div>
+    </div>
+
+    <div class="section-label">Счета</div>
     <div class="acc-row" id="accRow"></div>
 
-    <div class="grid cols-4 mt16">
-      <div class="card kpi"><div class="kpi-label">Общий баланс</div>
-        <div class="big-number ${balance >= 0 ? 'green' : 'red'}">${fmtMoney(balance)}</div>
-        <div class="kpi-sub">по всем счетам</div></div>
-      <div class="card kpi"><div class="kpi-label">Доход за месяц</div>
-        <div class="big-number green">${fmtMoney(monthIncome)}</div>
-        <div class="kpi-sub">всего заработано ${fmtMoney(financeTotal('income'))}</div></div>
-      <div class="card kpi"><div class="kpi-label">Расход за месяц</div>
-        <div class="big-number red">${fmtMoney(monthExpense)}</div>
-        <div class="kpi-sub">всего потрачено ${fmtMoney(financeTotal('expense'))}</div></div>
-      <div class="card kpi"><div class="kpi-label">Отложено за месяц</div>
-        <div class="big-number ${saved >= 0 ? 'green' : 'red'}">${fmtMoney(saved)}</div>
-        <div class="kpi-sub">норма сбережений ${savingRate}%</div></div>
+    <div class="section-label">За этот месяц</div>
+    <div class="stat-mini-row">
+      <div class="stat-mini"><div class="stat-mini-label">Доход</div>
+        <div class="stat-mini-value green">${fmtMoney(monthIncome)}</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">Расход</div>
+        <div class="stat-mini-value red">${fmtMoney(monthExpense)}</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">Отложено</div>
+        <div class="stat-mini-value ${saved >= 0 ? 'green' : 'red'}">${fmtMoney(saved)}</div>
+        <div class="stat-mini-sub">${savingRate}%</div></div>
     </div>
 
     <div class="section-label">Лимиты трат <button class="btn small" id="addBudget" style="margin-left:8px;">${icon('plus',13)} Добавить</button></div>
