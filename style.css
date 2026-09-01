@@ -633,6 +633,14 @@ body::before {
 .wish-note { font-size: 12px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
 .wish-actions { display: flex; gap: 6px; padding: 12px 14px 14px; }
 
+/* ============ Тренировки ============ */
+.workout-title { font-weight: 700; font-size: 14.5px; }
+.workout-note { font-size: 12.5px; color: var(--text-dim); margin: 8px 0 0; line-height: 1.45; }
+.exercise-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.exercise-row { padding: 9px 11px; background: var(--panel-2); border-radius: var(--radius-sm); }
+.exercise-name { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+.exercise-sets { display: flex; gap: 5px; flex-wrap: wrap; }
+
 /* ============ Журнал ============ */
 .mood-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .mood-btn {
@@ -672,6 +680,7 @@ body::before {
 .hm-cell.l1 { background: rgba(52,211,153,.35); }
 .hm-cell.l2 { background: rgba(52,211,153,.68); }
 .hm-cell.l3 { background: var(--green); }
+.hm-cell.l4 { background: var(--green); box-shadow: 0 0 0 1px rgba(52,211,153,.5); }
 .hm-legend { display: flex; align-items: center; gap: 4px; margin-top: 9px; font-size: 11px; color: var(--text-faint); }
 
 .split-bar { display: flex; height: 8px; border-radius: 20px; overflow: hidden; background: var(--panel-2); }

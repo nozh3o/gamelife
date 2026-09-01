@@ -69,6 +69,7 @@ const TAB_RENDERERS = {
   goals: renderGoals,
   wishes: renderWishes,
   nutrition: renderNutrition,
+  workouts: renderWorkouts,
   finance: renderFinance,
   stats: renderStats,
   journal: renderJournal,

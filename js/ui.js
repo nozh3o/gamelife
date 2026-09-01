@@ -192,8 +192,8 @@ function donutSvg(parts, { size = 150, valueFmt = fmtMoney, showPct = true } = {
   </div>`;
 }
 
-/* Тепловая карта активности (как на GitHub): counts — { 'YYYY-MM-DD': 0..3 },
-   чем больше видов активности в этот день (привычка/журнал/питание), тем ярче клетка. */
+/* Тепловая карта активности (как на GitHub): counts — { 'YYYY-MM-DD': 0..4 },
+   чем больше видов активности в этот день (привычка/журнал/питание/тренировка), тем ярче клетка. */
 function activityHeatmapHtml(counts, weeks = 20) {
   const today = new Date();
   const totalDays = weeks * 7;
@@ -208,7 +208,7 @@ function activityHeatmapHtml(counts, weeks = 20) {
     const col = [];
     for (let i = 0; i < 7; i++) {
       const ds = dateStr(cursor);
-      const level = Math.min(3, counts[ds] || 0);
+      const level = Math.min(4, counts[ds] || 0);
       col.push(cursor > today
         ? `<div class="hm-cell empty"></div>`
         : `<div class="hm-cell l${level}" title="${fmtDateHuman(ds)}${level ? ' · были активны' : ''}"></div>`);
@@ -220,7 +220,7 @@ function activityHeatmapHtml(counts, weeks = 20) {
       <div class="heatmap">${columns.join('')}</div>
       <div class="hm-legend">
         <span>меньше</span>
-        <div class="hm-cell l0"></div><div class="hm-cell l1"></div><div class="hm-cell l2"></div><div class="hm-cell l3"></div>
+        <div class="hm-cell l0"></div><div class="hm-cell l1"></div><div class="hm-cell l2"></div><div class="hm-cell l3"></div><div class="hm-cell l4"></div>
         <span>больше</span>
       </div>
     </div>`;

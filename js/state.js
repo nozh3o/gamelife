@@ -61,6 +61,7 @@ function defaultState() {
     todos: [],
     goals: [],
     wishes: [],   // карта желаний: {id, title, note, icon, image, done, doneAt}
+    workouts: [], // тренировки: {id, date, title, note, exercises: [{id, name, sets: [{weight, reps}]}]}
     finance: {
       accounts: [
         { id: 'main', name: 'Основной счёт', icon: '💳', type: 'card', balance: 0, creditLimit: 0, color: '#7c5cff', createdAt: nowISO() },
@@ -144,7 +145,7 @@ function normalize(parsed, d) {
   if (!Array.isArray(s.nutrition.dictionary)) s.nutrition.dictionary = [];
 
   // массивы должны остаться массивами
-  for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'journal', 'log']) {
+  for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log']) {
     if (!Array.isArray(s[key])) s[key] = d[key];
   }
   if (!s.lastCron) s.lastCron = todayStr();

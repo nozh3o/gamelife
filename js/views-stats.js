@@ -90,6 +90,8 @@ function computeActivityCounts() {
   state.journal.forEach(j => { if (!seenJournal.has(j.date)) { seenJournal.add(j.date); touch(j.date); } });
   const seenNutrition = new Set();
   state.nutrition.entries.forEach(e => { if (!seenNutrition.has(e.date)) { seenNutrition.add(e.date); touch(e.date); } });
+  const seenWorkout = new Set();
+  state.workouts.forEach(w => { if (!seenWorkout.has(w.date)) { seenWorkout.add(w.date); touch(w.date); } });
 
   return map;
 }
