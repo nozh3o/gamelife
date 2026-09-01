@@ -182,7 +182,7 @@ function barChartSvg(data, { height = 140, color = 'var(--accent)', valueFmt = f
 }
 
 /* Кольцевая диаграмма: parts = [{label, value, color}] */
-function donutSvg(parts, { size = 150 } = {}) {
+function donutSvg(parts, { size = 150, valueFmt = fmtMoney, showPct = true } = {}) {
   const total = parts.reduce((s, p) => s + p.value, 0);
   if (!total) return `<div class="empty-hint">Нет данных</div>`;
   const r = 40, c = 2 * Math.PI * r;
@@ -191,15 +191,18 @@ function donutSvg(parts, { size = 150 } = {}) {
     const frac = p.value / total;
     const seg = `<circle cx="50" cy="50" r="${r}" fill="none" stroke="${p.color}" stroke-width="16"
       stroke-dasharray="${(frac * c).toFixed(2)} ${(c - frac * c).toFixed(2)}"
-      stroke-dashoffset="${(-offset * c).toFixed(2)}" transform="rotate(-90 50 50)"><title>${esc(p.label)}: ${fmtMoney(p.value)}</title></circle>`;
+      stroke-dashoffset="${(-offset * c).toFixed(2)}" transform="rotate(-90 50 50)"><title>${esc(p.label)}: ${valueFmt(p.value)} (${Math.round(frac * 100)}%)</title></circle>`;
     offset += frac;
     return seg;
   }).join('');
-  const legend = parts.map(p => `<div class="legend-row">
+  const legend = parts.map(p => {
+    const pct = Math.round((p.value / total) * 100);
+    return `<div class="legend-row">
       <span class="legend-dot" style="background:${p.color}"></span>
       <span class="legend-name">${esc(p.label)}</span>
-      <span class="legend-val">${fmtMoney(p.value)}</span>
-    </div>`).join('');
+      <span class="legend-val">${valueFmt(p.value)}${showPct ? ` <b class="legend-pct">${pct}%</b>` : ''}</span>
+    </div>`;
+  }).join('');
   return `<div class="donut-wrap">
     <svg viewBox="0 0 100 100" width="${size}" height="${size}">${arcs}</svg>
     <div class="legend">${legend}</div>

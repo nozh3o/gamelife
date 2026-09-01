@@ -342,10 +342,15 @@ function checkAchievements() {
   }
 }
 
-/* ---- Финансы (реальные деньги) ----------------------------------------- */
+/* ---- Финансы (реальные деньги) -----------------------------------------
+   Баланс каждого счёта хранится напрямую в state.finance.accounts[].balance
+   и обновляется каждой операцией (доход/расход/перевод) — это и есть тот
+   баланс, который можно поправить руками при сверке. Общий баланс — просто
+   сумма по всем счетам (кредитки уходят в минус, что и есть их долг). */
 function financeBalance() {
-  return state.finance.transactions.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+  return state.finance.accounts.reduce((s, a) => s + (a.balance || 0), 0);
 }
+/* income/expense считаем без переводов между своими счетами — перевод не доход и не расход */
 function financeTotal(type) {
   return state.finance.transactions.filter(t => t.type === type).reduce((s, t) => s + t.amount, 0);
 }
@@ -354,3 +359,9 @@ function financeMonth(type, monthKey) {
     .filter(t => t.type === type && t.date.startsWith(monthKey))
     .reduce((s, t) => s + t.amount, 0);
 }
+function financeCategoryMonth(category, monthKey) {
+  return state.finance.transactions
+    .filter(t => t.type === 'expense' && t.date.startsWith(monthKey) && t.category === category)
+    .reduce((s, t) => s + t.amount, 0);
+}
+function financeAccount(id) { return state.finance.accounts.find(a => a.id === id); }

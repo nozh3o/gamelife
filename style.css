@@ -292,6 +292,14 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 }
 .tag-filter, .quick-cats, .idea-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .quick-cats { margin-top: 6px; }
+.new-cat-row { display: flex; gap: 6px; margin-top: 8px; }
+.new-cat-row input:first-child { max-width: 54px; text-align: center; flex: none; }
+.new-cat-row input:nth-child(2) { flex: 1; min-width: 0; }
+.new-cat-row input {
+  padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--panel); color: var(--text); font-size: 12.5px; outline: none;
+}
+.new-cat-row input:focus { border-color: var(--accent); }
 .chip-btn {
   padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border);
   background: var(--panel); color: var(--text-dim); font-size: 12px; cursor: pointer;
@@ -433,6 +441,40 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 .tx-amount { font-weight: 800; font-size: 15px; flex: none; }
 .tx-amount.green { color: var(--green); }
 .tx-amount.red { color: var(--red); }
+
+/* ---- Счета (Финансы) ---- */
+.acc-row {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+.account-card {
+  position: relative;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+  border-top: 3px solid var(--acc-color, var(--accent));
+  min-width: 0;
+}
+.account-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.account-ic { font-size: 22px; }
+.account-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .15s; }
+.account-card:hover .account-actions { opacity: 1; }
+.account-name { font-weight: 700; font-size: 13.5px; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-balance { font-weight: 800; font-size: 19px; margin-top: 4px; letter-spacing: -.3px; }
+.account-balance.red { color: var(--red); }
+.account-type-chip { margin-top: 8px; }
+
+.add-account-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: transparent; border: 1px dashed var(--border); border-radius: var(--radius);
+  color: var(--text-faint); cursor: pointer; min-height: 118px;
+  transition: border-color .15s, color .15s;
+}
+.add-account-tile:hover { border-color: var(--accent); color: var(--accent-2); }
+
+/* ---- Лимиты трат ---- */
+.budget-card { }
+.budget-title { font-weight: 700; font-size: 13.5px; }
+.bar-fill.red-fill { background: linear-gradient(90deg, #ff5c72, #ff2f4f); }
 
 /* ============ Цели ============ */
 .goal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }

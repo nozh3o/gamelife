@@ -67,7 +67,7 @@ function renderStats() {
     <div class="grid cols-2 mt16">
       <div class="card">
         <div class="card-title">Куда уходит опыт</div>
-        ${statParts.length ? donutSvg(statParts.map(p => ({ ...p })), { size: 160 }) : '<div class="empty-hint">Выполни задачи с привязкой к характеристике</div>'}
+        ${statParts.length ? donutSvg(statParts.map(p => ({ ...p })), { size: 160, valueFmt: v => fmtNum(v) + ' XP' }) : '<div class="empty-hint">Выполни задачи с привязкой к характеристике</div>'}
       </div>
       <div class="card">
         <div class="card-title">Лучшие стрики</div>

@@ -162,7 +162,14 @@ function defaultState() {
     inventory: { potion: 0, mana: 0, shield: 0 },
     pets: [],
     boss: { active: null, defeated: [] },
-    finance: { transactions: [] },
+    finance: {
+      accounts: [
+        { id: 'main', name: 'Основной счёт', icon: '💳', type: 'card', balance: 0, creditLimit: 0, color: '#7c5cff', createdAt: nowISO() },
+      ],
+      transactions: [],           // {id, date, time, amount, type: income|expense|transfer, category, note, accountId, toAccountId}
+      customCategories: { income: [], expense: [] },  // {name, icon}
+      budgets: [],                 // {id, category, limit} — лимит трат в месяц, category === '__total__' — общий лимит
+    },
     journal: [],
     nutrition: {
       // профиль нужен только для расчёта суточной нормы
@@ -214,6 +221,26 @@ function normalize(parsed, d) {
   s.inventory = deepMergeDefaults(parsed.inventory || {}, d.inventory);
   s.boss = deepMergeDefaults(parsed.boss || {}, d.boss);
   s.finance = deepMergeDefaults(parsed.finance || {}, d.finance);
+  s.finance.customCategories = deepMergeDefaults((parsed.finance || {}).customCategories || {}, d.finance.customCategories);
+  if (!Array.isArray(s.finance.accounts) || !s.finance.accounts.length) s.finance.accounts = d.finance.accounts.map(a => ({ ...a }));
+  if (!Array.isArray(s.finance.transactions)) s.finance.transactions = [];
+  if (!Array.isArray(s.finance.budgets)) s.finance.budgets = [];
+  // старые операции могли быть записаны до появления счетов — привязываем к первому счёту
+  // и пересчитываем его баланс, чтобы он совпадал с тем, что показывалось раньше
+  const fallbackAccountId = s.finance.accounts[0].id;
+  let needsBalanceRecalc = false;
+  s.finance.transactions.forEach(t => {
+    if (!t.accountId) { t.accountId = fallbackAccountId; needsBalanceRecalc = true; }
+  });
+  if (needsBalanceRecalc) {
+    const acc = s.finance.accounts.find(a => a.id === fallbackAccountId);
+    if (acc && !acc.balanceRecalculated) {
+      acc.balance = s.finance.transactions
+        .filter(t => t.accountId === fallbackAccountId)
+        .reduce((sum, t) => sum + (t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0), 0);
+      acc.balanceRecalculated = true;
+    }
+  }
 
   const pn = parsed.nutrition || {};
   s.nutrition = deepMergeDefaults(pn, d.nutrition);
