@@ -738,12 +738,18 @@ function openPhotoAnalyzer() {
       Сфотографируй тарелку целиком. Если рядом положить вилку или телефон — оценка размера порции
       будет заметно точнее.
     </p>
-    <label class="btn primary wfull" style="cursor:pointer;justify-content:center;">
-      📷 Сделать снимок или выбрать файл
-      <input type="file" id="foodPhoto" accept="image/*" capture="environment" style="display:none;">
-    </label>
+    <div style="display:flex;gap:8px;">
+      <label class="btn primary" style="cursor:pointer;justify-content:center;flex:1;">
+        📷 Камера
+        <input type="file" id="foodPhotoCamera" accept="image/*" capture="environment" style="display:none;">
+      </label>
+      <label class="btn" style="cursor:pointer;justify-content:center;flex:1;">
+        🖼️ Из галереи
+        <input type="file" id="foodPhotoGallery" accept="image/*" style="display:none;">
+      </label>
+    </div>
     <div id="photoStage" style="margin-top:14px;"></div>`, modal => {
-    modal.querySelector('#foodPhoto').addEventListener('change', async ev => {
+    const handlePhoto = async ev => {
       const file = ev.target.files[0];
       if (!file) return;
       const stage = modal.querySelector('#photoStage');
@@ -765,7 +771,9 @@ function openPhotoAnalyzer() {
         const b = stage.querySelector('#manualInstead');
         if (b) b.addEventListener('click', () => { closeModal(); openMealForm(null, null); });
       }
-    });
+    };
+    modal.querySelector('#foodPhotoCamera').addEventListener('change', handlePhoto);
+    modal.querySelector('#foodPhotoGallery').addEventListener('change', handlePhoto);
   });
 }
 
