@@ -11,11 +11,30 @@ const TASK_TYPES = [
   { key: 'daily', label: 'Ежедневки', icon: 'calendar' },
 ];
 const TASK_HINTS = {
-  todo: 'Разовые дела. Записал — вычеркнул.',
+  todo: 'Список на день — новый день начинается с чистого листа, старые дни видно стрелками.',
   habit: 'Нажимаешь «+» сколько раз сделал за день, «−» — если сорвался.',
   daily: 'Отмечаешь раз в день по расписанию — ведёт стрик «дней подряд».',
 };
 const TASK_ADD_LABEL = { todo: 'задачу', habit: 'привычку', daily: 'ежедневку' };
+
+/* ---- Задачи привязаны к дню: null значит «сегодня» ------------------------ */
+let taskDate = null;
+function curTaskDate() { return taskDate || todayStr(); }
+function taskDayLabel(iso) {
+  const diff = daysBetween(todayStr(), iso);
+  if (diff === 0) return 'Сегодня';
+  if (diff === -1) return 'Вчера';
+  if (diff === 1) return 'Завтра';
+  const d = parseDate(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('ru-RU', sameYear ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function shiftTaskDate(delta) {
+  const d = parseDate(curTaskDate());
+  d.setDate(d.getDate() + delta);
+  taskDate = dateStr(d);
+  renderTasks();
+}
 
 function renderTasks() {
   const type = taskFilters.type;
@@ -40,6 +59,13 @@ function renderTasks() {
       ${TASK_TYPES.map(t => `<button class="seg-btn ${type === t.key ? 'on' : ''}" data-type="${t.key}">${icon(t.icon, 15)} ${t.label}</button>`).join('')}
     </div>
 
+    ${type === 'todo' ? `<div class="task-day-nav" id="taskDayNav">
+      <button class="day-nav-btn" data-day-shift="-1" title="Предыдущий день">${icon('chevronLeft',16)}</button>
+      <div class="task-day-label">${esc(taskDayLabel(curTaskDate()))}</div>
+      <button class="day-nav-btn" data-day-shift="1" title="Следующий день">${icon('chevronRight',16)}</button>
+      ${curTaskDate() !== todayStr() ? `<button type="button" class="btn ghost small task-day-today" data-day-today>Сегодня</button>` : ''}
+    </div>` : ''}
+
     ${allTags.length ? `<div class="tag-filter mt16" id="tagFilter">
       <button class="chip-btn ${!taskFilters.tag ? 'on' : ''}" data-tag="">Все</button>
       ${allTags.map(tag => `<button class="chip-btn ${taskFilters.tag === tag ? 'on' : ''}" data-tag="${esc(tag)}">#${esc(tag)}</button>`).join('')}
@@ -54,6 +80,13 @@ function renderTasks() {
     if (!b || b.dataset.type === taskFilters.type) return;
     taskFilters.type = b.dataset.type;
     renderTasks();
+  });
+
+  const dayNav = document.getElementById('taskDayNav');
+  if (dayNav) dayNav.addEventListener('click', e => {
+    const shiftBtn = e.target.closest('[data-day-shift]');
+    if (shiftBtn) { shiftTaskDate(Number(shiftBtn.dataset.dayShift)); return; }
+    if (e.target.closest('[data-day-today]')) { taskDate = null; renderTasks(); }
   });
 
   const tagFilterEl = document.getElementById('tagFilter');
@@ -87,11 +120,14 @@ function renderTaskLists() {
     list.innerHTML = dueFirst.length ? dueFirst.map(dailyCardHtml).join('')
       : `<div class="empty-hint">Нет ежедневок. Например: «зарядка», «30 минут чтения».</div>`;
   } else {
-    const items = state.todos.filter(matchesFilter);
-    const active = items.filter(t => !t.done)
-      .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt.localeCompare(a.createdAt));
+    const day = curTaskDate();
+    const items = state.todos.filter(t => (t.date || todayStr()) === day).filter(matchesFilter);
+    const active = items.filter(t => !t.done).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const done = items.filter(t => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
-    list.innerHTML = (active.length ? active.map(todoCardHtml).join('') : `<div class="empty-hint">Активных задач нет</div>`)
+    const emptyMsg = day === todayStr() ? 'Пока пусто — самое время добавить дело'
+      : day < todayStr() ? 'В этот день задач не было'
+      : 'Пока ничего не запланировано';
+    list.innerHTML = (active.length ? active.map(todoCardHtml).join('') : `<div class="task-day-empty">${emptyMsg}</div>`)
       + (done.length
         ? `<div class="col-divider">Выполнено (${done.length})</div>` + done.slice(0, 40).map(todoCardHtml).join('')
         : '');
@@ -157,15 +193,12 @@ function dailyCardHtml(d) {
 }
 
 function todoCardHtml(t) {
-  const overdue = !t.done && t.due && t.due < todayStr();
-  const dueSoon = !t.done && t.due && t.due === todayStr();
   const checklistDone = (t.checklist || []).filter(c => c.done).length;
   const subParts = [];
-  if (t.due) subParts.push(`<span class="${overdue ? 'warn' : dueSoon ? 'soon' : ''}">${overdue ? 'просрочено ' : 'до '}${fmtDateHuman(t.due)}</span>`);
   if ((t.checklist || []).length) subParts.push(`<span>${checklistDone}/${t.checklist.length}</span>`);
   if ((t.tags || []).length) subParts.push(`<span>${t.tags.map(tag => '#' + esc(tag)).join(' ')}</span>`);
 
-  return `<div class="task-card todo ${t.done ? 'is-done' : ''} ${overdue ? 'overdue' : ''}">
+  return `<div class="task-card todo ${t.done ? 'is-done' : ''}">
     <div class="task-body">
       <div class="task-title ${t.done ? 'strike' : ''}">${esc(t.title)}</div>
       ${t.note ? `<div class="task-note ${t.done ? 'strike' : ''}">${esc(t.note)}</div>` : ''}
@@ -343,7 +376,7 @@ function openTaskForm(type, id) {
         if (type === 'todo') {
           const data = { ...base };
           if (existing) Object.assign(existing, data);
-          else state.todos.push({ id: uid(), ...data, done: false, doneAt: null, createdAt: nowISO() });
+          else state.todos.push({ id: uid(), ...data, date: curTaskDate(), done: false, doneAt: null, createdAt: nowISO() });
         }
         if (!existing) addLog('➕', `Создано: ${title}`);
       });

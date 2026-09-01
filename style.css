@@ -298,6 +298,23 @@ body::before {
   padding: 26px 16px; border: 1.5px dashed var(--border);
   border-radius: var(--radius-sm); line-height: 1.5;
 }
+/* Тихая заглушка внутри flat-list — без рамки и фона, чтобы «пустой день»
+   не выглядел как ошибка, это нормальное повседневное состояние */
+.task-day-empty {
+  color: var(--text-faint); font-size: 13px; text-align: center;
+  padding: 30px 16px; line-height: 1.5;
+}
+
+/* Навигация по дням у задач */
+.task-day-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 2px; }
+.day-nav-btn {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; cursor: pointer;
+  border: 1px solid var(--border-soft); background: var(--panel-2); color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center; transition: background .15s, color .15s;
+}
+.day-nav-btn:hover { background: var(--panel-3); color: var(--text); }
+.task-day-label { font-weight: 700; font-size: 14.5px; min-width: 130px; text-align: center; }
+.task-day-today { flex: none; }
 .hr { height: 1px; background: var(--border-soft); margin: 16px 0; border: none; }
 .text-dim { color: var(--text-dim); }
 .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

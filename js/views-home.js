@@ -15,11 +15,8 @@ function renderHome() {
   const today = todayStr();
   const dueToday = state.dailies.filter(isDailyDueToday);
   const doneToday = dueToday.filter(isDailyDoneToday);
-  const openTodos = state.todos.filter(t => !t.done);
-  const overdue = openTodos.filter(t => t.due && t.due < today);
-  const soon = [...openTodos]
-    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 6);
+  const openTodos = state.todos.filter(t => !t.done && (t.date || today) === today);
+  const soon = [...openTodos].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(0, 6);
 
   content().innerHTML = `
     <div class="page-head">
@@ -48,7 +45,7 @@ function renderHome() {
         <div class="list" id="homeToday"></div>
       </div>
       <div class="card">
-        <div class="card-title">Ближайшие задачи <small>${openTodos.length}${overdue.length ? ` · <span class="text-red">${overdue.length} просрочено</span>` : ''}</small></div>
+        <div class="card-title">Задачи на сегодня <small>${openTodos.length}</small></div>
         <div class="list" id="homeTodos"></div>
       </div>
     </div>`;
@@ -60,23 +57,19 @@ function renderHome() {
           <button class="check-btn small ${done ? 'checked' : ''}" data-home-daily="${d.id}">${done ? icon('checkmark',11) : ''}</button>
           <div class="main">
             <div class="title ${done ? 'strike' : ''}">${esc(d.title)}</div>
-            <div class="meta">${diffChip(d.difficulty)}<span class="chip ${d.streak ? 'gold' : ''}">${icon('flame',12)} ${d.streak}</span></div>
+            ${d.streak ? `<div class="meta"><span class="chip gold">${icon('flame',12)} ${d.streak}</span></div>` : ''}
           </div>
         </div>`;
       }).join('')
     : `<div class="empty-hint">На сегодня ежедневок нет. Создай их во вкладке «Задачи».</div>`;
 
   document.getElementById('homeTodos').innerHTML = soon.length
-    ? soon.map(t => {
-        const late = t.due && t.due < today;
-        return `<div class="row-item compact">
+    ? soon.map(t => `<div class="row-item compact">
           <button class="check-btn small" data-home-todo="${t.id}"></button>
           <div class="main">
             <div class="title">${esc(t.title)}</div>
-            <div class="meta">${diffChip(t.difficulty)}${t.due ? `<span class="chip ${late ? 'red' : ''}">${icon(late ? 'alert' : 'calendar', 12)} ${fmtDateHuman(t.due)}</span>` : ''}</div>
           </div>
-        </div>`;
-      }).join('')
+        </div>`).join('')
     : `<div class="empty-hint">Открытых задач нет — можно выдохнуть</div>`;
 
   content().querySelectorAll('[data-home-daily]').forEach(b =>

@@ -71,6 +71,8 @@ const ICONS = {
   bank: '<path d="M4 10h16"/><path d="M4 20h16"/><path d="M5.5 10v10"/><path d="M18.5 10v10"/><path d="M9.5 10v10"/><path d="M14.5 10v10"/><path d="M12 2.5l9 5.5H3z"/>',
   banknote: '<rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M5.5 9v-.01"/><path d="M18.5 15v-.01"/>',
   card: '<rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path d="M2.5 9.5h19"/><path d="M5.5 14.5h4"/>',
+  chevronLeft: '<path d="M15 5l-7 7 7 7"/>',
+  chevronRight: '<path d="M9 5l7 7-7 7"/>',
   mood1: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5 17.5Q12 13 16.5 17.5"/>',
   mood2: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8 16.5Q12 15 16 16.5"/>',
   mood3: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8.5 16.2h7"/>',

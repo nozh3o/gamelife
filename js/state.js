@@ -151,6 +151,11 @@ function normalize(parsed, d) {
   for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log', 'agentInbox']) {
     if (!Array.isArray(s[key])) s[key] = d[key];
   }
+  // задачи теперь привязаны к дню — у старых записей без даты берём срок
+  // (если был) или день создания, чтобы они не потерялись
+  s.todos.forEach(t => {
+    if (!t.date) t.date = t.due || (t.createdAt ? t.createdAt.slice(0, 10) : todayStr());
+  });
   if (!s.lastCron) s.lastCron = todayStr();
   return s;
 }
