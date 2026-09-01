@@ -21,6 +21,7 @@ function defaultSyncCfg() {
     accessToken: '', refreshToken: '', userId: '', email: '',
     deviceId: uid(), deviceName: guessDeviceName(),
     auto: true,
+    foodFn: '',        // адрес Edge Function для разбора фото еды
     lastSyncAt: 0,     // локальное время последней удачной синхронизации
     lastRemoteAt: 0,   // серверное updated_at на тот же момент
   };
@@ -444,7 +445,24 @@ function syncActiveHtml() {
     <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap;margin-top:14px;">
       <button class="btn primary" id="syncNowBtn">☁️ Синхронизировать сейчас</button>
       <button class="btn ghost" id="syncOutBtn">Выйти на этом устройстве</button>
-    </div>`;
+    </div>
+
+    <hr class="hr">
+    <div class="card-title" style="margin-bottom:8px;">Распознавание еды по фото</div>
+    <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:0 0 10px;">
+      Адрес функции <code>analyze-food</code> из твоего проекта Supabase. Ключ от сервиса
+      распознавания задаётся там же в секретах и в браузер не попадает — сюда вставляется
+      только адрес. Инструкция: файл <b>SETUP-FOOD-AI.md</b> в папке проекта.
+    </p>
+    <form id="foodFnForm" class="form-grid">
+      <label class="field" style="grid-column:1/-1;">Адрес функции
+        <input type="url" name="foodFn" value="${esc(syncCfg.foodFn || '')}"
+               placeholder="https://xxxx.supabase.co/functions/v1/analyze-food">
+      </label>
+      <div class="form-actions" style="grid-column:1/-1;">
+        <button type="submit" class="btn">Сохранить адрес</button>
+      </div>
+    </form>`;
 }
 
 function bindSyncCard(root) {
@@ -516,6 +534,20 @@ function bindSyncCard(root) {
     syncCfg.auto = e.target.checked;
     saveSyncCfg();
     setSyncStatus(e.target.checked ? 'ok' : 'off', e.target.checked ? 'Синхронизировано' : 'Автосинхронизация выключена');
+  });
+
+  const foodForm = root.querySelector('#foodFnForm');
+  if (foodForm) foodForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = String(new FormData(e.target).get('foodFn') || '').trim();
+    if (v && !/^https:\/\/.+\/functions\/v1\/.+/.test(v)) {
+      toast('Адрес должен выглядеть как https://…supabase.co/functions/v1/analyze-food', 'red');
+      return;
+    }
+    syncCfg.foodFn = v;
+    saveSyncCfg();
+    toast(v ? 'Адрес функции сохранён' : 'Распознавание по фото отключено', 'green');
+    renderAll();
   });
 
   const outBtn = root.querySelector('#syncOutBtn');

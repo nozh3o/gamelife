@@ -164,6 +164,13 @@ function defaultState() {
     boss: { active: null, defeated: [] },
     finance: { transactions: [] },
     journal: [],
+    nutrition: {
+      // профиль нужен только для расчёта суточной нормы
+      profile: { sex: 'male', age: 30, height: 175, weight: 70, activity: 1.375, goal: 'maintain' },
+      targets: { auto: true, kcal: 2000, protein: 120, fat: 65, carbs: 220 },
+      entries: [],      // съеденное: по одной записи на приём пищи
+      dictionary: [],   // личный словарь блюд для повторного добавления в один тап
+    },
     achievements: {},
     activity: {},
     log: [],
@@ -207,6 +214,14 @@ function normalize(parsed, d) {
   s.inventory = deepMergeDefaults(parsed.inventory || {}, d.inventory);
   s.boss = deepMergeDefaults(parsed.boss || {}, d.boss);
   s.finance = deepMergeDefaults(parsed.finance || {}, d.finance);
+
+  const pn = parsed.nutrition || {};
+  s.nutrition = deepMergeDefaults(pn, d.nutrition);
+  s.nutrition.profile = { ...d.nutrition.profile, ...(pn.profile || {}) };
+  s.nutrition.targets = { ...d.nutrition.targets, ...(pn.targets || {}) };
+  if (!Array.isArray(s.nutrition.entries)) s.nutrition.entries = [];
+  if (!Array.isArray(s.nutrition.dictionary)) s.nutrition.dictionary = [];
+
   // массивы должны остаться массивами
   for (const key of ['stats', 'habits', 'dailies', 'todos', 'goals', 'rewards', 'pets', 'journal', 'log']) {
     if (!Array.isArray(s[key])) s[key] = d[key];
