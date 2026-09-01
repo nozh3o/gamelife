@@ -114,8 +114,9 @@ function init() {
   const hash = location.hash.replace('#', '');
   if (TAB_RENDERERS[hash]) currentTab = hash;
 
-  document.getElementById('mainNav').addEventListener('click', e => {
-    const btn = e.target.closest('.nav-btn');
+  // слушаем на всём сайдбаре — так под неё же попадает и «Настройки» из подвала
+  document.getElementById('sidebar').addEventListener('click', e => {
+    const btn = e.target.closest('.nav-btn[data-tab]');
     if (btn) goTab(btn.dataset.tab);
   });
 

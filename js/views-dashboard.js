@@ -39,28 +39,31 @@ function renderDashboard() {
       </div>
     </div>
 
-    <div class="grid cols-4">
-      <div class="card kpi">
-        <div class="kpi-label">Уровень</div>
-        <div class="big-number">${li.level}</div>
-        ${barHtml(li.pct, 'gold')}
-        <div class="kpi-sub">${li.into} / ${li.need} XP · сегодня +${fmtNum(dayXp)}</div>
+    <div class="hero-grid">
+      <div class="hero-main-card">
+        <div class="hero-top-row">
+          <div class="hero-avatar-mini">${esc(p.avatar)}</div>
+          <div class="hero-streak-chip">🔥 ${bestStreak} ${plural(bestStreak, 'день', 'дня', 'дней')} лучший стрик</div>
+        </div>
+        <div class="hero-level-label">Уровень персонажа</div>
+        <div class="hero-level-num">${li.level}</div>
+        <div class="hero-xp-row">
+          <div class="hero-xp-bar"><div class="hero-xp-fill" style="width:${li.pct}%"></div></div>
+          <div class="hero-xp-text">${li.into} / ${li.need} XP · сегодня +${fmtNum(dayXp)}</div>
+        </div>
       </div>
-      <div class="card kpi">
-        <div class="kpi-label">День закрыт на</div>
-        <div class="big-number ${dayPct === 100 ? 'green' : ''}">${dayPct}%</div>
-        ${barHtml(dayPct, 'green')}
-        <div class="kpi-sub">${doneToday.length} из ${dueToday.length} ${plural(dueToday.length, 'ежедневки', 'ежедневок', 'ежедневок')}</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Лучший стрик</div>
-        <div class="big-number">🔥 ${bestStreak}</div>
-        <div class="kpi-sub">${openTodos.length} ${plural(openTodos.length, 'открытая задача', 'открытые задачи', 'открытых задач')}${overdue.length ? ` · <span class="text-red">${overdue.length} просрочено</span>` : ''}</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Кошелёк</div>
-        <div class="big-number gold-text">🪙 ${fmtNum(p.gold)}</div>
-        <div class="kpi-sub">💎 ${fmtNum(p.gems)} · реальный баланс ${fmtMoney(financeBalance())}</div>
+      <div class="hero-side">
+        <div class="card kpi">
+          <div class="kpi-label">День закрыт на</div>
+          <div class="big-number ${dayPct === 100 ? 'green' : ''}">${dayPct}%</div>
+          ${barHtml(dayPct, 'green')}
+          <div class="kpi-sub">${doneToday.length} из ${dueToday.length} ${plural(dueToday.length, 'ежедневки', 'ежедневок', 'ежедневок')}</div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi-label">Кошелёк</div>
+          <div class="big-number gold-text">🪙 ${fmtNum(p.gold)}</div>
+          <div class="kpi-sub">💎 ${fmtNum(p.gems)} · реальный баланс ${fmtMoney(financeBalance())}</div>
+        </div>
       </div>
     </div>
 
@@ -72,13 +75,15 @@ function renderDashboard() {
         <div class="list" id="dashToday"></div>
       </div>
       <div class="card">
-        <div class="card-title">Ближайшие задачи <small>${openTodos.length}</small></div>
+        <div class="card-title">Ближайшие задачи <small>${openTodos.length}${overdue.length ? ` · <span class="text-red">${overdue.length} просрочено</span>` : ''}</small></div>
         <div class="list" id="dashTodos"></div>
       </div>
     </div>
 
     <div class="section-label">Характеристики персонажа</div>
-    <div class="grid cols-4" id="dashStats"></div>
+    <div class="section-card">
+      <div class="grid cols-4" id="dashStats"></div>
+    </div>
 
     <div class="grid cols-2 mt16">
       <div class="card">

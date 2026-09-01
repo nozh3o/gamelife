@@ -73,8 +73,19 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--panel-3); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border); }
 
+/* Фоновое свечение — придаёт глубину вместо плоской заливки одним цветом */
+body::before {
+  content: ''; position: fixed; inset: -10%; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(650px circle at 12% -8%, var(--accent-glow), transparent 60%),
+    radial-gradient(550px circle at 100% 8%, rgba(109,141,255,.16), transparent 55%),
+    radial-gradient(500px circle at 25% 100%, rgba(246,196,83,.06), transparent 60%);
+  opacity: .8;
+}
+:root[data-theme="light"] body::before { opacity: .5; }
+
 /* ============ Каркас ============ */
-.app { display: grid; grid-template-columns: 276px 1fr; min-height: 100vh; }
+.app { display: grid; grid-template-columns: 276px 1fr; min-height: 100vh; position: relative; z-index: 1; }
 
 .sidebar {
   background: var(--bg-soft);
@@ -104,6 +115,11 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .nav { display: flex; flex-direction: column; gap: 2px; margin-top: 18px; }
+.nav-group-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-faint); padding: 16px 12px 6px;
+}
+.nav-group-label:first-child { padding-top: 0; }
 .nav-btn {
   display: flex; align-items: center; gap: 11px;
   padding: 10px 12px; border: none; background: transparent;
@@ -117,9 +133,13 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 .nav-btn.active .nav-ic { filter: drop-shadow(0 0 6px var(--accent-glow)); }
 
 .sidebar-footer {
-  margin-top: auto; padding: 14px 8px 0;
-  color: var(--text-faint); font-size: 12px;
-  text-transform: capitalize;
+  margin-top: auto; padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.settings-btn { width: 100%; margin-bottom: 8px; }
+.sidebar-footer > span {
+  display: block; padding: 6px 12px 2px;
+  color: var(--text-faint); font-size: 11.5px; text-transform: capitalize;
 }
 .content { padding: 30px 34px 70px; max-width: 1240px; width: 100%; }
 
@@ -485,9 +505,52 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 
 .stat-mini {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px; background: var(--panel);
+  padding: 12px; background: var(--panel-2);
   border-radius: var(--radius-sm); border: 1px solid var(--border-soft);
 }
+
+/* Обёртка для секций дашборда — объединяет содержимое в единый узнаваемый блок */
+.section-card {
+  background: var(--bg-soft); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 18px;
+}
+
+/* ---- Герой-блок дашборда: уровень крупно, вместо ряда одинаковых карточек ---- */
+.hero-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: stretch; }
+.hero-main-card {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 65%, #4c3ad6 130%);
+  border-radius: var(--radius-lg);
+  padding: 26px 28px;
+  color: #fff;
+  box-shadow: 0 24px 56px -18px var(--accent-glow);
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 196px;
+}
+.hero-main-card::after {
+  content: ''; position: absolute; width: 240px; height: 240px; border-radius: 50%;
+  background: rgba(255,255,255,.12); filter: blur(6px);
+  right: -70px; top: -80px; pointer-events: none;
+}
+.hero-top-row { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.hero-greet { font-size: 13px; opacity: .85; font-weight: 600; }
+.hero-avatar-mini {
+  width: 42px; height: 42px; border-radius: 14px; background: rgba(255,255,255,.18);
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex: none;
+}
+.hero-streak-chip {
+  background: rgba(255,255,255,.18); padding: 5px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.hero-level-label { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; opacity: .8; font-weight: 700; margin-top: 16px; position: relative; z-index: 1; }
+.hero-level-num { font-size: 58px; font-weight: 900; line-height: 1; letter-spacing: -2.5px; margin-top: 2px; position: relative; z-index: 1; font-variant-numeric: tabular-nums; }
+.hero-xp-row { display: flex; align-items: center; gap: 11px; margin-top: 16px; position: relative; z-index: 1; }
+.hero-xp-bar { flex: 1; height: 9px; border-radius: 20px; background: rgba(255,255,255,.24); overflow: hidden; }
+.hero-xp-fill { height: 100%; background: #fff; border-radius: 20px; transition: width .5s cubic-bezier(.2,.9,.3,1); }
+.hero-xp-text { font-size: 11.5px; font-weight: 700; opacity: .92; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.hero-side { display: flex; flex-direction: column; gap: 14px; }
+.hero-side .card { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .stat-mini .body { flex: 1; min-width: 0; }
 .stat-mini .row1 { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; gap: 8px; font-weight: 600; }
 .stat-mini .lvl { color: var(--gold); font-weight: 700; flex: none; }
@@ -896,6 +959,9 @@ code {
   .cl-item input { width: 18px; height: 18px; }
   .reward-edit { opacity: 1; }
   .task-columns { grid-template-columns: 1fr; }
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-side { flex-direction: row; }
+  .hero-level-num { font-size: 48px; }
   .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr 1fr; }
   .hero-card { flex-direction: column; }
   .class-grid { grid-template-columns: 1fr; }
