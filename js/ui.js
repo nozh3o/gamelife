@@ -100,23 +100,6 @@ function confetti(count = 70) {
   }
 }
 
-/* ---- Оверлей повышения уровня ---------------------------------------- */
-function showLevelUp(level) {
-  const root = fxRoot();
-  if (!root) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'levelup-pop';
-  wrap.innerHTML = `<div class="levelup-card">
-      <div class="lu-1">Новый уровень</div>
-      <div class="lu-2">⭐ ${level} ⭐</div>
-      <div class="lu-3">+1 очко навыка</div>
-    </div>`;
-  root.appendChild(wrap);
-  SFX.levelUp();
-  confetti(90);
-  setTimeout(() => wrap.remove(), 2200);
-}
-
 /* ---- Модалка --------------------------------------------------------- */
 function openModal(title, bodyHtml, onMount) {
   const root = modalRoot();
@@ -227,62 +210,10 @@ function ringSvg(pct, { size = 108, stroke = 10, color = 'var(--accent)', trackC
   </div>`;
 }
 
-/* Тепловая карта активности (как на GitHub) */
-function heatmapHtml(activity, weeks = 20) {
-  const cells = [];
-  const today = new Date();
-  const totalDays = weeks * 7;
-  const start = new Date(today);
-  start.setDate(start.getDate() - totalDays + 1);
-  // выравниваем на понедельник
-  const shift = (start.getDay() + 6) % 7;
-  start.setDate(start.getDate() - shift);
-
-  const values = Object.values(activity).map(a => a.xp || 0);
-  const max = Math.max(1, ...values);
-
-  const cursor = new Date(start);
-  const columns = [];
-  while (cursor <= today) {
-    const col = [];
-    for (let i = 0; i < 7; i++) {
-      const ds = dateStr(cursor);
-      const xp = (activity[ds] && activity[ds].xp) || 0;
-      const level = xp === 0 ? 0 : Math.min(4, Math.ceil((xp / max) * 4));
-      col.push(cursor > today
-        ? `<div class="hm-cell empty"></div>`
-        : `<div class="hm-cell l${level}" title="${fmtDateHuman(ds)}: ${fmtNum(xp)} XP"></div>`);
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    columns.push(`<div class="hm-col">${col.join('')}</div>`);
-  }
-  return `<div class="heatmap-wrap">
-      <div class="heatmap">${columns.join('')}</div>
-      <div class="hm-legend">
-        <span>меньше</span>
-        <div class="hm-cell l0"></div><div class="hm-cell l1"></div><div class="hm-cell l2"></div>
-        <div class="hm-cell l3"></div><div class="hm-cell l4"></div>
-        <span>больше</span>
-      </div>
-    </div>`;
-}
-
 /* ---- Вспомогательное для форм ---------------------------------------- */
-function statOptions(selectedId) {
-  let html = `<option value="">— без характеристики —</option>`;
-  for (const s of state.stats) {
-    html += `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.icon} ${esc(s.name)}</option>`;
-  }
-  return html;
-}
 function difficultyOptions(selected = 'easy') {
   return Object.entries(DIFFICULTY).map(([k, v]) =>
-    `<option value="${k}" ${k === selected ? 'selected' : ''}>${v.label} (×${v.mult})</option>`).join('');
-}
-function statById(id) { return state.stats.find(s => s.id === id); }
-function statChip(statId) {
-  const s = statById(statId);
-  return s ? `<span class="chip">${s.icon} ${esc(s.name)}</span>` : '';
+    `<option value="${k}" ${k === selected ? 'selected' : ''}>${v.label}</option>`).join('');
 }
 function diffChip(key) {
   const d = DIFFICULTY[key] || DIFFICULTY.easy;

@@ -207,56 +207,6 @@ body::before {
 }
 .bn-indicator.on { opacity: 1; }
 
-/* ============ Карточка героя ============ */
-.player-card {
-  background: linear-gradient(165deg, var(--panel-2), var(--panel));
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
-  padding: 15px;
-  box-shadow: var(--shadow-soft);
-}
-.pc-top { display: flex; align-items: center; gap: 11px; }
-.pc-avatar {
-  position: relative;
-  width: 46px; height: 46px; border-radius: 15px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex: none;
-  box-shadow: var(--shadow-accent);
-}
-.pc-pet {
-  position: absolute; right: -5px; bottom: -5px;
-  font-size: 14px; background: var(--panel);
-  border: 2px solid var(--bg-soft); border-radius: 50%;
-  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
-}
-.pc-id { min-width: 0; }
-.pc-name { font-weight: 800; font-size: 15px; line-height: 1.2; letter-spacing: -.1px; }
-.pc-level { color: var(--gold); font-size: 12px; font-weight: 700; margin-top: 2px; }
-
-.pc-bars { margin-top: 13px; display: flex; flex-direction: column; gap: 7px; }
-.pc-bar-row { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 7px; }
-.pc-bar-ic { font-size: 11px; }
-.pc-bar-val { font-size: 10.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
-
-.pc-currency { display: flex; gap: 6px; margin-top: 12px; }
-.cur-chip {
-  flex: 1; text-align: center; padding: 6px 6px;
-  border-radius: 11px; background: var(--panel-2);
-  border: 1px solid var(--border-soft);
-  font-size: 12px; font-weight: 700;
-}
-.cur-chip.gold { color: var(--gold); }
-.cur-chip.gem { color: var(--accent-2); }
-.cur-chip.big { flex: none; padding: 8px 14px; font-size: 14px; }
-
-.pc-buffs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
-.buff-chip {
-  font-size: 10.5px; padding: 3px 8px; border-radius: 20px;
-  background: rgba(139,92,246,.16); color: var(--accent-2);
-  border: 1px solid rgba(139,92,246,.3);
-}
-
 /* ============ Полоски ============ */
 .bar { border-radius: 20px; background: var(--panel-2); overflow: hidden; }
 .bar.thin { height: 8px; }
@@ -467,7 +417,7 @@ body::before {
 .chip.diff-hard { color: var(--red); background: rgba(255,93,115,.12); }
 
 /* Круглые бейджи для эмодзи-иконок в списках — единый узнаваемый стиль */
-.row-item .ic, .stat-mini .ic, .ach-card .ic {
+.row-item .ic {
   width: 38px; height: 38px; border-radius: 13px;
   background: var(--panel-3);
   display: flex; align-items: center; justify-content: center;
@@ -572,58 +522,6 @@ body::before {
 .log-text { flex: 1; color: var(--text-dim); line-height: 1.4; }
 .log-time { flex: none; color: var(--text-faint); font-size: 11px; }
 
-.stat-mini {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px; background: var(--panel-2);
-  border-radius: var(--radius-sm); border: 1px solid var(--border-soft);
-}
-
-/* Обёртка для секций дашборда — объединяет содержимое в единый узнаваемый блок */
-.section-card {
-  background: var(--bg-soft); border: 1px solid var(--border-soft);
-  border-radius: var(--radius); padding: 18px;
-}
-
-/* ---- Герой-блок дашборда: уровень крупно, вместо ряда одинаковых карточек ---- */
-.hero-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: stretch; }
-.hero-main-card {
-  position: relative; overflow: hidden;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 65%, #4c3ad6 130%);
-  border-radius: var(--radius-lg);
-  padding: 26px 28px;
-  color: #fff;
-  box-shadow: 0 24px 56px -18px var(--accent-glow);
-  display: flex; flex-direction: column; justify-content: center;
-  min-height: 196px;
-}
-.hero-main-card::after {
-  content: ''; position: absolute; width: 240px; height: 240px; border-radius: 50%;
-  background: rgba(255,255,255,.12); filter: blur(6px);
-  right: -70px; top: -80px; pointer-events: none;
-}
-.hero-top-row { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
-.hero-greet { font-size: 13px; opacity: .85; font-weight: 600; }
-.hero-avatar-mini {
-  width: 42px; height: 42px; border-radius: 14px; background: rgba(255,255,255,.18);
-  display: flex; align-items: center; justify-content: center; font-size: 20px; flex: none;
-}
-.hero-streak-chip {
-  background: rgba(255,255,255,.18); padding: 5px 12px; border-radius: 20px;
-  font-size: 12px; font-weight: 700; white-space: nowrap;
-}
-.hero-level-label { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; opacity: .8; font-weight: 700; margin-top: 16px; position: relative; z-index: 1; }
-.hero-level-num { font-size: 58px; font-weight: 900; line-height: 1; letter-spacing: -2.5px; margin-top: 2px; position: relative; z-index: 1; font-variant-numeric: tabular-nums; }
-.hero-xp-row { display: flex; align-items: center; gap: 11px; margin-top: 16px; position: relative; z-index: 1; }
-.hero-xp-bar { flex: 1; height: 9px; border-radius: 20px; background: rgba(255,255,255,.24); overflow: hidden; }
-.hero-xp-fill { height: 100%; background: #fff; border-radius: 20px; transition: width .5s cubic-bezier(.2,.9,.3,1); }
-.hero-xp-text { font-size: 11.5px; font-weight: 700; opacity: .92; white-space: nowrap; font-variant-numeric: tabular-nums; }
-
-.hero-side { display: flex; flex-direction: column; gap: 14px; }
-.hero-side .card { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.stat-mini .body { flex: 1; min-width: 0; }
-.stat-mini .row1 { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; gap: 8px; font-weight: 600; }
-.stat-mini .lvl { color: var(--gold); font-weight: 700; flex: none; }
-
 .tx-amount { font-weight: 800; font-size: 15.5px; flex: none; font-variant-numeric: tabular-nums; }
 .tx-amount.green { color: var(--green); }
 .tx-amount.red { color: var(--red); }
@@ -695,92 +593,6 @@ body::before {
 .goal-add-row input:focus { border-color: var(--accent); }
 .goal-mini { padding: 4px 0; }
 
-/* ============ Персонаж ============ */
-.hero-card { display: flex; gap: 18px; align-items: flex-start; }
-.hero-avatar {
-  width: 78px; height: 78px; border-radius: 22px; flex: none;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  display: flex; align-items: center; justify-content: center; font-size: 40px;
-  box-shadow: var(--shadow-accent);
-}
-.hero-info { min-width: 0; flex: 1; }
-.hero-name { font-size: 20px; font-weight: 800; letter-spacing: -.4px; }
-.hero-class { color: var(--gold); font-size: 13px; font-weight: 600; margin-top: 2px; }
-.hero-stats-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
-.hero-bonus { font-size: 12px; color: var(--text-faint); }
-
-.locked-box { display: flex; gap: 13px; align-items: center; padding: 15px; background: var(--panel-2); border-radius: var(--radius-sm); border: 1.5px dashed var(--border); }
-.locked-ic { font-size: 28px; }
-
-.class-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.class-opt {
-  text-align: left; padding: 13px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border-soft); background: var(--panel-2); cursor: pointer;
-  transition: border-color .15s, transform .08s, background .15s;
-}
-.class-opt:hover { border-color: var(--accent); background: var(--panel); }
-.class-opt:active { transform: scale(.98); }
-.class-ic { font-size: 24px; }
-.class-ic.big { font-size: 40px; }
-.class-name { font-weight: 700; font-size: 14px; margin-top: 4px; }
-.class-desc { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; line-height: 1.4; }
-.class-current { display: flex; gap: 14px; align-items: center; }
-
-.skill-box { background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 14px; }
-.skill-head { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 11px; }
-.skill-ic { font-size: 22px; }
-
-.stat-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.stat-ic {
-  font-size: 18px; width: 36px; height: 36px; border-radius: 12px;
-  background: var(--panel-3); display: flex; align-items: center; justify-content: center; flex: none;
-}
-.stat-name { flex: 1; font-weight: 700; font-size: 14px; }
-
-.pet-card { text-align: center; }
-.pet-card.active { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
-.pet-ic { font-size: 36px; width: 62px; height: 62px; border-radius: 18px; background: var(--panel-3); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-.pet-name { font-weight: 700; font-size: 13.5px; margin-top: 8px; }
-
-.boss-card { display: flex; gap: 16px; align-items: center; }
-.boss-card.active { border-color: rgba(255,93,115,.4); }
-.boss-icon { font-size: 44px; flex: none; }
-.boss-icon.shake { animation: shake 2.6s ease-in-out infinite; }
-@keyframes shake {
-  0%, 88%, 100% { transform: translateX(0) rotate(0); }
-  90% { transform: translateX(-3px) rotate(-4deg); }
-  93% { transform: translateX(3px) rotate(4deg); }
-  96% { transform: translateX(-2px) rotate(-2deg); }
-}
-.boss-body { flex: 1; min-width: 0; }
-.boss-entry.locked { opacity: .5; }
-.boss-entry.fighting { border-color: rgba(255,93,115,.4); }
-.boss-entry-head { display: flex; gap: 12px; align-items: flex-start; }
-.boss-entry-ic { font-size: 30px; flex: none; }
-.boss-entry-name { font-weight: 700; font-size: 14.5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-
-/* ============ Магазин ============ */
-.reward-card { text-align: center; position: relative; }
-.reward-card.poor { opacity: .55; }
-.reward-ic { font-size: 30px; width: 56px; height: 56px; border-radius: 18px; background: var(--panel-3); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-.reward-title { font-weight: 700; font-size: 14px; margin-top: 10px; line-height: 1.3; }
-.reward-edit { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; opacity: 0; transition: opacity .15s; }
-.reward-card:hover .reward-edit { opacity: 1; }
-
-/* ============ Достижения ============ */
-.ach-card {
-  display: flex; gap: 13px; align-items: flex-start;
-  padding: 15px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border-soft); background: var(--panel);
-}
-.ach-card.locked { opacity: .4; filter: grayscale(1); }
-.ach-card.unlocked { border-color: rgba(246,196,83,.3); background: linear-gradient(180deg, rgba(246,196,83,.07), transparent), var(--panel); }
-.ach-card .ic { font-size: 20px; }
-.ach-body { min-width: 0; }
-.ach-card .title { font-weight: 700; font-size: 13.5px; }
-.ach-card .desc { font-size: 12px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
-.ach-date { font-size: 11px; color: var(--gold); margin-top: 6px; font-weight: 600; }
-
 /* ============ Журнал ============ */
 .mood-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .mood-btn {
@@ -810,17 +622,6 @@ body::before {
 .legend-name { flex: 1; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legend-val { color: var(--text); font-weight: 600; flex: none; font-variant-numeric: tabular-nums; }
 .legend-pct { color: var(--text-faint); font-weight: 700; }
-
-.heatmap-wrap { overflow-x: auto; padding-bottom: 4px; }
-.heatmap { display: flex; gap: 3px; min-width: max-content; }
-.hm-col { display: flex; flex-direction: column; gap: 3px; }
-.hm-cell { width: 12px; height: 12px; border-radius: 4px; background: var(--panel-2); }
-.hm-cell.empty { opacity: 0; }
-.hm-cell.l1 { background: rgba(52,211,153,.3); }
-.hm-cell.l2 { background: rgba(52,211,153,.5); }
-.hm-cell.l3 { background: rgba(52,211,153,.72); }
-.hm-cell.l4 { background: var(--green); }
-.hm-legend { display: flex; align-items: center; gap: 4px; margin-top: 9px; font-size: 11px; color: var(--text-faint); }
 
 .split-bar { display: flex; height: 8px; border-radius: 20px; overflow: hidden; background: var(--panel-2); }
 .split-good { background: var(--green); }
@@ -964,17 +765,6 @@ code {
   to { transform: translateY(104vh) rotate(720deg); opacity: .2; }
 }
 
-.levelup-pop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; pointer-events: none; }
-.levelup-card {
-  background: radial-gradient(circle at 50% 0%, rgba(246,196,83,.25), transparent 62%), var(--panel);
-  border: 1px solid var(--gold); border-radius: 24px;
-  padding: 30px 54px; text-align: center;
-  box-shadow: 0 24px 70px rgba(0,0,0,.55);
-  animation: pop .45s cubic-bezier(.2,1.4,.4,1);
-}
-.levelup-card .lu-1 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
-.levelup-card .lu-2 { font-size: 44px; font-weight: 900; margin: 6px 0; letter-spacing: -1px; }
-.levelup-card .lu-3 { font-size: 12.5px; color: var(--text-dim); }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ============ Модалка ============ */
@@ -1033,26 +823,17 @@ code {
   .btn.icon-only { padding: 9px 12px; }
   .cl-item { padding: 3px 0; }
   .cl-item input { width: 18px; height: 18px; }
-  .reward-edit { opacity: 1; }
   .task-columns { grid-template-columns: 1fr; }
-  .hero-grid { grid-template-columns: 1fr; }
-  .hero-side { flex-direction: row; }
-  .hero-level-num { font-size: 48px; }
   .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr 1fr; }
-  .hero-card { flex-direction: column; }
-  .class-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; }
-  /* короткие плитки (показатели, характеристики, питомцы) оставляем по две в ряд,
-     иначе главный экран растягивается на несколько экранов прокрутки */
+  /* короткие KPI-плитки оставляем по две в ряд, иначе экран растягивается
+     на несколько экранов прокрутки */
   .grid.cols-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
   .grid.cols-4 .card { padding: 13px; }
   .grid.cols-4 .big-number { font-size: 22px; }
   .grid.cols-4 .kpi-sub { font-size: 10.5px; }
-  .stat-mini { gap: 9px; padding: 10px; }
-  .stat-mini .ic { width: 32px; height: 32px; font-size: 15px; }
-  .stat-mini .row1 { font-size: 11.5px; }
   .goal-grid { grid-template-columns: 1fr; }
   .page-title { font-size: 21px; }
   .big-number { font-size: 25px; }

@@ -76,9 +76,6 @@ function goalCardHtml(g) {
     </div>
 
     <div class="task-meta mt8">
-      ${statChip(g.statId)}
-      <span class="chip gold">+${g.xpReward} XP</span>
-      ${g.goldReward ? `<span class="chip gold">+${g.goldReward} 🪙</span>` : ''}
       ${g.moneyReward ? `<span class="chip green">+${fmtMoney(g.moneyReward)}</span>` : ''}
       ${g.deadline ? `<span class="chip ${overdue ? 'red' : ''}">${overdue ? '⏰ просрочено ' : '📆 '}${fmtDateHuman(g.deadline)}${dl !== null && dl >= 0 ? ` · ${dl} ${plural(dl, 'день', 'дня', 'дней')}` : ''}</span>` : ''}
     </div>
@@ -139,14 +136,11 @@ function completeGoal(g) {
   if (g.done) return;
   g.done = true;
   g.doneAt = nowISO();
-  grantXp(g.xpReward, g.statId);
-  if (g.goldReward) grantGold(g.goldReward);
   if (g.moneyReward) addTransaction(g.moneyReward, 'income', 'Цель', g.title, todayStr(), true);
-  recordActivity(g.xpReward, 1);
   addLog('🏁', `Цель достигнута: ${g.title}`);
   toast(`🏁 Цель достигнута: ${g.title}!`, 'gold');
   confetti(110);
-  SFX.levelUp();
+  SFX.achieve();
 }
 
 function addGoalProgress(id, amount) {
@@ -157,8 +151,6 @@ function addGoalProgress(id, amount) {
     g.progressLog = g.progressLog || [];
     g.progressLog.push({ date: todayStr(), amount });
     if (g.progressLog.length > 200) g.progressLog = g.progressLog.slice(-200);
-    // небольшая награда просто за движение вперёд
-    if (amount > 0) { grantXp(3, g.statId); recordActivity(3, 0); }
     if (g.current >= g.target) completeGoal(g);
   });
 }
@@ -169,7 +161,6 @@ function toggleMilestone(gid, mid) {
     const m = (g.milestones || []).find(x => x.id === mid);
     if (!m) return;
     m.done = !m.done;
-    if (m.done) { grantXp(8, g.statId); grantGold(4); recordActivity(8, 1); }
     if ((g.milestones || []).length && g.milestones.every(x => x.done)) completeGoal(g);
   });
 }
@@ -199,9 +190,6 @@ function openGoalForm(id) {
           <option value="boolean" ${g.kind === 'boolean' ? 'selected' : ''}>Простая — сделано или нет</option>
         </select>
       </label>
-      <label class="field">Характеристика
-        <select name="statId">${statOptions(g.statId)}</select>
-      </label>
       <label class="field goal-num">Цель (число)
         <input type="number" step="any" name="target" value="${g.target ?? 100}" min="0.01">
       </label>
@@ -211,11 +199,8 @@ function openGoalForm(id) {
       <label class="field goal-steps" style="grid-column: 1/-1;">Этапы — по одному на строку
         <textarea name="milestones" rows="3" placeholder="Собрать документы&#10;Пройти собеседование">${esc((g.milestones || []).map(m => m.text).join('\n'))}</textarea>
       </label>
-      <label class="field">Награда XP
-        <input type="number" name="xpReward" value="${g.xpReward ?? 150}" min="0">
-      </label>
-      <label class="field">Награда золотом
-        <input type="number" name="goldReward" value="${g.goldReward ?? 100}" min="0">
+      <label class="field">Награда деньгами (необязательно)
+        <input type="number" name="moneyReward" value="${g.moneyReward ?? ''}" min="0" placeholder="0">
       </label>
       <label class="field">Дедлайн
         <input type="date" name="deadline" value="${esc(g.deadline || '')}">
@@ -252,12 +237,10 @@ function openGoalForm(id) {
       const data = {
         title, kind,
         note: String(f.get('note') || '').trim(),
-        statId: f.get('statId') || null,
         target: kind === 'numeric' ? (Number(f.get('target')) || 1) : 1,
         unit: f.get('unit') || '',
         milestones: kind === 'steps' ? milestones : [],
-        xpReward: Number(f.get('xpReward')) || 0,
-        goldReward: Number(f.get('goldReward')) || 0,
+        moneyReward: Number(f.get('moneyReward')) || 0,
         deadline: f.get('deadline') || null,
       };
 

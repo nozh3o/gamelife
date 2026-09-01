@@ -160,8 +160,6 @@ function applyRemoteState(data) {
   state = normalize(data, defaultState());
   state.updatedAt = Date.now();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
-  state.player.hp = clamp(state.player.hp, 0, maxHp());
-  state.player.mp = clamp(state.player.mp, 0, maxMp());
   state.dailies.forEach(recomputeStreak);
   applyTheme();
   renderAll();

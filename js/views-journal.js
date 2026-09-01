@@ -12,7 +12,7 @@ function renderJournal() {
     <div class="page-head">
       <div>
         <h1 class="page-title">Журнал</h1>
-        <p class="page-sub">Короткая запись в конце дня превращает суету в осознанный прогресс. Даёт опыт и качает «Спокойствие».</p>
+        <p class="page-sub">Короткая запись в конце дня превращает суету в осознанный прогресс.</p>
       </div>
     </div>
 
@@ -37,7 +37,7 @@ function renderJournal() {
           <textarea name="text" rows="4" placeholder="Что получилось, что мешало, что попробую завтра…">${esc((todayEntry && todayEntry.text) || '')}</textarea>
         </label>
         <div class="form-actions mt8">
-          <button type="submit" class="btn primary">${todayEntry ? '💾 Обновить запись' : '➕ Сохранить (+15 XP)'}</button>
+          <button type="submit" class="btn primary">${todayEntry ? '💾 Обновить запись' : '➕ Сохранить'}</button>
         </div>
       </form>
     </div>
@@ -69,11 +69,8 @@ function renderJournal() {
         toast('Запись обновлена', 'green');
       } else {
         state.journal.unshift({ id: uid(), date: today, mood, wins, text, createdAt: nowISO() });
-        grantXp(15, 'spirit');
-        grantGold(5);
-        recordActivity(15, 1);
-        addLog('📔', 'Сделана запись в журнале (+15 XP)');
-        toast('📔 День записан. +15 XP', 'green');
+        addLog('📔', 'Сделана запись в журнале');
+        toast('📔 День записан', 'green');
         SFX.complete();
       }
     });

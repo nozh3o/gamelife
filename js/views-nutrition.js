@@ -86,7 +86,7 @@ function renderNutrition() {
     <div class="page-head">
       <div>
         <h1 class="page-title">Питание</h1>
-        <p class="page-sub">Норма считается по формуле Миффлина — Сан Жеора из твоих параметров. Уложился в неё за день — получаешь опыт и качаешь «Здоровье».</p>
+        <p class="page-sub">Норма считается по формуле Миффлина — Сан Жеора из твоих параметров.</p>
       </div>
       <div class="head-actions">
         <input type="date" id="nutDate" class="inline-date" value="${nutDate()}" max="${todayStr()}">
@@ -369,27 +369,20 @@ function openMealForm(existing, prefill) {
   });
 }
 
-/* Записываем приём пищи и начисляем игровые награды */
+/* Записываем приём пищи */
 function addMealEntry(data) {
   const date = nutDate();
   const first = dayEntries(date).length === 0;
   state.nutrition.entries.push({ id: uid(), date, ...data });
 
   if (date === todayStr()) {
-    if (first) {
-      grantXp(8, 'health');
-      recordActivity(8, 1);
-      addLog('🍽️', `Начат дневник питания на ${fmtDateHuman(date)}`);
-    }
-    // бонус за попадание в норму — начисляем один раз за день
+    if (first) addLog('🍽️', `Начат дневник питания на ${fmtDateHuman(date)}`);
+    // отмечаем попадание в норму один раз за день
     if (hitTargetToday() && !state.nutrition.entries.some(e => e.date === date && e.bonusGiven)) {
       const last = state.nutrition.entries[state.nutrition.entries.length - 1];
       last.bonusGiven = true;
-      grantXp(30, 'health');
-      grantGold(15);
-      recordActivity(30, 0);
-      addLog('🎯', 'Дневная норма калорий выполнена (+30 XP)');
-      toast('🎯 Уложился в норму — +30 XP', 'gold');
+      addLog('🎯', 'Дневная норма калорий выполнена');
+      toast('🎯 Уложился в норму сегодня', 'gold');
       confetti(50);
     }
   }

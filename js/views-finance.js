@@ -64,8 +64,6 @@ function addTransaction(amount, type, category, note, date, silent = false, acco
   };
   state.finance.transactions.unshift(tx);
   applyTxEffect(tx, 1);
-  grantXp(4, 'wealth');
-  recordActivity(4, 0);
   if (!silent) {
     addLog(type === 'income' ? '💵' : '💸',
       `${type === 'income' ? 'Доход' : 'Расход'}: ${fmtMoney(Math.abs(amount))} · ${category || 'Прочее'}`);
@@ -558,8 +556,6 @@ function openTxForm(existing) {
           const tx = { id: uid(), time: new Date().toTimeString().slice(0, 5), ...data };
           state.finance.transactions.unshift(tx);
           applyTxEffect(tx, 1);
-          grantXp(4, 'wealth');
-          recordActivity(4, 0);
           addLog(type === 'income' ? '💵' : type === 'expense' ? '💸' : '🔁',
             type === 'transfer' ? `Перевод ${fmtMoney(amount)}` : `${type === 'income' ? 'Доход' : 'Расход'}: ${fmtMoney(amount)} · ${data.category}`);
         }

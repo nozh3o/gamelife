@@ -1,5 +1,5 @@
 /* =========================================================================
-   views-settings.js — профиль, оформление, характеристики, бэкапы
+   views-settings.js — оформление, валюта, бэкапы
    ========================================================================= */
 
 const ACCENTS = [
@@ -10,44 +10,17 @@ const ACCENTS = [
   { id: 'rose',   name: 'Розовый',    color: '#f43f7e' },
   { id: 'cyan',   name: 'Бирюзовый',  color: '#17b7c9' },
 ];
-const AVATARS = ['🧙', '🧝', '🦸', '🥷', '🧑‍🚀', '🧑‍💻', '🧑‍🎨', '🐺', '🦊', '🦁', '🐉', '🦉'];
 
 function renderSettings() {
-  const p = state.player;
-
   content().innerHTML = `
     <div class="page-head">
       <div>
         <h1 class="page-title">Настройки</h1>
-        <p class="page-sub">Профиль, внешний вид, свои характеристики и резервные копии.</p>
+        <p class="page-sub">Внешний вид, валюта и резервные копии.</p>
       </div>
     </div>
 
-    <div class="grid cols-2">
-      <div class="card">
-        <div class="card-title">Профиль героя</div>
-        <form id="profileForm" class="form-grid">
-          <label class="field" style="grid-column:1/-1;">Имя
-            <input type="text" name="name" value="${esc(p.name)}" maxlength="24">
-          </label>
-          <div class="field" style="grid-column:1/-1;">Аватар
-            <div class="avatar-picker" id="avatarPicker">
-              ${AVATARS.map(a => `<button type="button" class="avatar-opt ${a === p.avatar ? 'on' : ''}" data-avatar="${a}">${a}</button>`).join('')}
-            </div>
-            <input type="hidden" name="avatar" value="${esc(p.avatar)}">
-          </div>
-          <label class="field">Валюта
-            <select name="currency">
-              ${['₸', '₽', '$', '€', '₴', '£', '¥'].map(c => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}
-            </select>
-          </label>
-          <div class="form-actions" style="grid-column:1/-1;">
-            <button type="submit" class="btn primary">💾 Сохранить профиль</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="card">
+    <div class="card">
         <div class="card-title">Оформление</div>
         <div class="field">Тема
           <div class="seg" id="themeSeg">
@@ -60,21 +33,15 @@ function renderSettings() {
             ${ACCENTS.map(a => `<button class="accent-opt ${state.settings.accent === a.id ? 'on' : ''}" data-accent="${a.id}" style="background:${a.color}" title="${a.name}"></button>`).join('')}
           </div>
         </div>
+        <label class="field mt16">Валюта
+          <select name="currency" id="currencySelect">
+            ${['₸', '₽', '$', '€', '₴', '£', '¥'].map(c => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </label>
         <hr class="hr">
-        <label class="switch"><input type="checkbox" id="soundToggle" ${state.settings.sound ? 'checked' : ''}><span>🔊 Звуки наград и уровней</span></label>
+        <label class="switch"><input type="checkbox" id="soundToggle" ${state.settings.sound ? 'checked' : ''}><span>🔊 Звук при выполнении</span></label>
         <label class="switch mt8"><input type="checkbox" id="confettiToggle" ${state.settings.confetti ? 'checked' : ''}><span>🎉 Конфетти на важных событиях</span></label>
       </div>
-    </div>
-
-    <div class="card mt16">
-      <div class="card-title">Характеристики персонажа <small>используются в задачах, привычках и целях</small></div>
-      <form id="statForm" class="form-grid" style="margin-bottom:14px;">
-        <label class="field" style="max-width:90px;">Иконка<input type="text" name="icon" value="✨" maxlength="4"></label>
-        <label class="field" style="grid-column: span 2;">Название<input type="text" name="name" placeholder="Например: Английский" required></label>
-        <div class="form-actions" style="grid-column:1/-1;"><button type="submit" class="btn primary">➕ Добавить</button></div>
-      </form>
-      <div class="list" id="statsList"></div>
-    </div>
 
     <div class="grid cols-2 mt16">
       <div class="card">
@@ -95,11 +62,10 @@ function renderSettings() {
       <div class="card">
         <div class="card-title" style="color:var(--red);">Опасная зона</div>
         <p class="text-dim" style="font-size:13px;line-height:1.5;">
-          Сброс удалит весь прогресс: задачи, стрики, цели, финансы, достижения и уровень.
+          Сброс удалит весь прогресс: задачи, стрики, цели, финансы и журнал.
           Перед этим лучше сделать экспорт.
         </p>
         <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap;">
-          <button class="btn danger" id="resetProgressBtn">♻️ Обнулить только героя</button>
           <button class="btn danger-solid" id="resetBtn">🗑️ Удалить всё</button>
         </div>
       </div>
@@ -118,12 +84,12 @@ function renderSettings() {
     <div class="card mt16">
       <div class="card-title">Как это работает</div>
       <div class="help-grid">
-        <div><b>🔁 Привычки</b><p>Нажимаешь «+» столько раз, сколько сделал. «−» — за срыв, он бьёт по здоровью.</p></div>
-        <div><b>📅 Ежедневки</b><p>Отмечаешь раз в день по расписанию. Пропуск = урон и обнуление стрика.</p></div>
-        <div><b>✅ Задачи</b><p>Разовые дела. Чем выше сложность — тем больше опыта и золота.</p></div>
-        <div><b>❤️ Здоровье</b><p>Кончилось — минус уровень и всё золото. Лечится зельем, уровнем или навыком Целителя.</p></div>
-        <div><b>🪙 Золото</b><p>Тратится в Магазине на награды, которые ты придумал сам. Это ключевая часть системы.</p></div>
-        <div><b>💎 Кристаллы</b><p>Выдаются за достижения и боссов. Тратятся на питомцев с постоянными бонусами.</p></div>
+        <div><b>🔁 Привычки</b><p>Нажимаешь «+» столько раз, сколько сделал за день. «−» — за срыв. Просто счётчик.</p></div>
+        <div><b>📅 Ежедневки</b><p>Отмечаешь раз в день по расписанию. Пропуск обнуляет стрик «дней подряд».</p></div>
+        <div><b>✅ Задачи</b><p>Разовые дела со сроком и чек-листом. Сложность — просто метка для себя.</p></div>
+        <div><b>🎯 Цели</b><p>Числовые, пошаговые или простые. Можно привязать денежную награду.</p></div>
+        <div><b>💰 Финансы</b><p>Настоящие счета и операции в твоей валюте.</p></div>
+        <div><b>🥗 Питание</b><p>Дневная норма БЖУ и дневник приёмов пищи.</p></div>
       </div>
     </div>`;
 
@@ -141,7 +107,7 @@ function phoneCardHtml() {
   if (isStandalone()) {
     return `<div class="ok-box">Приложение запущено с домашнего экрана.</div>
       <p class="text-dim" style="font-size:13px;line-height:1.5;">
-        Учти: сохранение на телефоне отдельное от компьютера — это два независимых героя.
+        Учти: сохранение на телефоне отдельное от компьютера — это два независимых набора данных.
         Чтобы перенести прогресс, выгрузи бэкап на одном устройстве и загрузи на другом.
       </p>${offline}`;
   }
@@ -173,23 +139,8 @@ function backupWarningHtml() {
 function bindSettings() {
   const root = content();
 
-  // профиль
-  const avatarInput = root.querySelector('[name=avatar]');
-  root.querySelector('#avatarPicker').addEventListener('click', e => {
-    const b = e.target.closest('[data-avatar]');
-    if (!b) return;
-    avatarInput.value = b.dataset.avatar;
-    root.querySelectorAll('.avatar-opt').forEach(x => x.classList.toggle('on', x === b));
-  });
-  root.querySelector('#profileForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    mutate(() => {
-      state.player.name = String(f.get('name') || 'Игрок').trim() || 'Игрок';
-      state.player.avatar = String(f.get('avatar') || '🧙').trim() || '🧙';
-      state.settings.currency = f.get('currency');
-    });
-    toast('Профиль сохранён', 'green');
+  root.querySelector('#currencySelect').addEventListener('change', e => {
+    mutate(() => { state.settings.currency = e.target.value; });
   });
 
   // тема и акцент
@@ -214,39 +165,6 @@ function bindSettings() {
     if (e.target.checked) confetti(30);
   });
 
-  // характеристики
-  root.querySelector('#statForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    const name = String(f.get('name') || '').trim();
-    if (!name) return;
-    mutate(() => state.stats.push({ id: uid(), name, icon: String(f.get('icon') || '✨').trim() || '✨', xp: 0 }));
-  });
-
-  root.querySelector('#statsList').innerHTML = state.stats.map(s => {
-    const li = levelInfo(s.xp, 60, 25);
-    return `<div class="row-item">
-      <span class="ic">${s.icon}</span>
-      <div class="main">
-        <div class="title">${esc(s.name)}</div>
-        <div class="meta"><span class="chip gold">ур. ${li.level}</span><span class="chip">${fmtNum(s.xp)} XP</span></div>
-      </div>
-      <div class="actions"><button class="btn ghost small icon-only danger-text" data-del-stat="${s.id}" title="Удалить">✕</button></div>
-    </div>`;
-  }).join('') || `<div class="empty-hint">Характеристик нет</div>`;
-
-  root.querySelectorAll('[data-del-stat]').forEach(b => b.addEventListener('click', () => {
-    const s = statById(b.dataset.delStat);
-    confirmAction(`Удалить характеристику «${s ? s.name : ''}»? Задачи, привязанные к ней, останутся без категории.`, () => {
-      mutate(() => {
-        const id = b.dataset.delStat;
-        state.stats = state.stats.filter(x => x.id !== id);
-        [...state.habits, ...state.dailies, ...state.todos, ...state.goals]
-          .forEach(t => { if (t.statId === id) t.statId = null; });
-      });
-    });
-  }));
-
   // синхронизация
   bindSyncCard(root);
 
@@ -257,7 +175,6 @@ function bindSettings() {
   // бэкапы
   root.querySelector('#exportBtn').addEventListener('click', exportData);
   root.querySelector('#importInput').addEventListener('change', importData);
-  root.querySelector('#resetProgressBtn').addEventListener('click', resetHeroOnly);
   root.querySelector('#resetBtn').addEventListener('click', resetAll);
 }
 
@@ -307,30 +224,13 @@ function importData(e) {
   reader.readAsText(file);
 }
 
-function resetHeroOnly() {
-  confirmAction('Обнулить уровень, опыт, золото и кристаллы? Задачи, цели и финансы останутся на месте.', () => {
-    mutate(() => {
-      const d = defaultState();
-      state.player = { ...d.player, name: state.player.name, avatar: state.player.avatar, createdAt: state.player.createdAt };
-      state.stats.forEach(s => s.xp = 0);
-      state.pets = [];
-      state.inventory = { potion: 0, mana: 0, shield: 0 };
-      state.boss = { active: null, defeated: [] };
-      state.activity = {};
-      state.achievements = {};
-      addLog('♻️', 'Герой обнулён — новый забег');
-    });
-    toast('Герой обнулён', 'green');
-  });
-}
-
 function resetAll() {
-  confirmAction('Это удалит ВСЕ данные без возможности вернуть: задачи, стрики, цели, финансы, журнал и достижения. Точно?', () => {
+  confirmAction('Это удалит ВСЕ данные без возможности вернуть: задачи, стрики, цели, финансы и журнал. Точно?', () => {
     confirmAction('Последнее предупреждение. Бэкап сделан?', () => {
       state = defaultState();
       saveState();
       applyTheme();
-      currentTab = 'dashboard';
+      currentTab = 'tasks';
       renderAll();
       toast('Все данные удалены', 'red');
     });

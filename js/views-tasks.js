@@ -35,7 +35,7 @@ function renderTasks() {
           <h2>🔁 Привычки <small>${state.habits.length}</small></h2>
           <button class="btn primary small" data-add="habit">＋</button>
         </div>
-        <p class="col-hint">Хорошее нажимаешь «+», плохое — «−». Плюс даёт награду, минус бьёт по здоровью.</p>
+        <p class="col-hint">Хорошее нажимаешь «+», плохое — «−». Просто счётчик: сколько раз сделал и сколько сорвался.</p>
         <div class="list" id="habitList"></div>
       </section>
 
@@ -44,7 +44,7 @@ function renderTasks() {
           <h2>📅 Ежедневки <small>${state.dailies.length}</small></h2>
           <button class="btn primary small" data-add="daily">＋</button>
         </div>
-        <p class="col-hint">Если не выполнить в запланированный день — герой получит урон, а стрик сгорит.</p>
+        <p class="col-hint">Если не выполнить в запланированный день — стрик сгорит.</p>
         <div class="list" id="dailyList"></div>
       </section>
 
@@ -126,7 +126,7 @@ function habitCardHtml(h) {
       <div class="task-title">${esc(h.icon || '🔁')} ${esc(h.title)}</div>
       ${h.note ? `<div class="task-note">${esc(h.note)}</div>` : ''}
       <div class="task-meta">
-        ${diffChip(h.difficulty)}${statChip(h.statId)}${tagChips(h.tags)}
+        ${diffChip(h.difficulty)}${tagChips(h.tags)}
         <span class="chip ${net >= 0 ? 'green' : 'red'}">баланс: ${net > 0 ? '+' : ''}${net}</span>
         ${h.todayCount ? `<span class="chip">сегодня: ${h.todayCount}</span>` : ''}
       </div>
@@ -157,7 +157,7 @@ function dailyCardHtml(d) {
       ${(d.checklist || []).length ? `<div class="checklist">${d.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="daily:${d.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
       <div class="task-meta">
-        ${diffChip(d.difficulty)}${statChip(d.statId)}${tagChips(d.tags)}
+        ${diffChip(d.difficulty)}${tagChips(d.tags)}
         <span class="chip ${d.streak > 0 ? 'gold' : ''}">🔥 ${d.streak} ${plural(d.streak, 'день', 'дня', 'дней')}</span>
         ${d.best ? `<span class="chip">рекорд ${d.best}</span>` : ''}
         ${(d.checklist || []).length ? `<span class="chip">${checklistDone}/${d.checklist.length}</span>` : ''}
@@ -186,7 +186,7 @@ function todoCardHtml(t) {
       ${(t.checklist || []).length ? `<div class="checklist">${t.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="todo:${t.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
       <div class="task-meta">
-        ${diffChip(t.difficulty)}${statChip(t.statId)}${tagChips(t.tags)}
+        ${diffChip(t.difficulty)}${tagChips(t.tags)}
         ${(t.checklist || []).length ? `<span class="chip">${checklistDone}/${t.checklist.length}</span>` : ''}
         ${t.due ? `<span class="chip ${overdue ? 'red' : dueSoon ? 'gold' : ''}">${overdue ? '⏰ просрочено ' : '📆 до '}${fmtDateHuman(t.due)}</span>` : ''}
       </div>
@@ -239,13 +239,10 @@ function clickHabit(id, dir) {
     if (dir > 0) {
       h.upCount = (h.upCount || 0) + 1;
       h.todayCount = (h.todayCount || 0) + 1;
-      rewardForTask(h.difficulty, h.statId);
+      SFX.complete();
       addLog('🔁', `Привычка «${h.title}» отмечена`);
     } else {
       h.downCount = (h.downCount || 0) + 1;
-      const mult = (DIFFICULTY[h.difficulty] || DIFFICULTY.easy).mult;
-      const dmg = applyDamage(BASE_DAMAGE * mult, `срыв «${h.title}»`);
-      if (dmg) { floatText(`−${dmg} HP`, 'bad'); SFX.damage(); }
       addLog('⚠️', `Сорвался на «${h.title}»`);
     }
     h.history = h.history || [];
@@ -264,7 +261,7 @@ function toggleDaily(id) {
       d.history.push(today);
       d.history.sort();
       recomputeStreak(d);
-      rewardForTask(d.difficulty, d.statId, { streakBonus: d.streak });
+      SFX.complete();
       addLog('📅', `Ежедневка выполнена: ${d.title} (стрик ${d.streak})`);
       if (d.streak > 0 && d.streak % 7 === 0) {
         toast(`🔥 ${d.title}: ${d.streak} ${plural(d.streak, 'день', 'дня', 'дней')} подряд!`, 'gold');
@@ -273,10 +270,6 @@ function toggleDaily(id) {
     } else {
       d.history.splice(idx, 1);
       recomputeStreak(d);
-      // откатываем награду примерно на ту же величину
-      const mult = (DIFFICULTY[d.difficulty] || DIFFICULTY.easy).mult;
-      state.player.xp = Math.max(0, state.player.xp - Math.round(BASE_XP * mult));
-      state.player.gold = Math.max(0, state.player.gold - Math.round(BASE_GOLD * mult));
     }
   });
 }
@@ -287,14 +280,10 @@ function toggleTodo(id) {
     if (!t) return;
     if (!t.done) {
       t.done = true; t.doneAt = nowISO();
-      const bonus = (t.checklist || []).length ? (t.checklist.length * 0.15) : 0;
-      rewardForTask(t.difficulty, t.statId, { streakBonus: bonus * 10 });
+      SFX.complete();
       addLog('✅', `Задача выполнена: ${t.title}`);
     } else {
       t.done = false; t.doneAt = null;
-      const mult = (DIFFICULTY[t.difficulty] || DIFFICULTY.easy).mult;
-      state.player.xp = Math.max(0, state.player.xp - Math.round(BASE_XP * mult));
-      state.player.gold = Math.max(0, state.player.gold - Math.round(BASE_GOLD * mult));
     }
   });
 }
@@ -339,9 +328,6 @@ function openTaskForm(type, id) {
       </label>
       <label class="field">Сложность
         <select name="difficulty">${difficultyOptions(t.difficulty || 'easy')}</select>
-      </label>
-      <label class="field">Характеристика
-        <select name="statId">${statOptions(t.statId)}</select>
       </label>
       <label class="field">Теги через запятую
         <input type="text" name="tags" value="${esc((t.tags || []).join(', '))}" placeholder="дом, спорт">
@@ -398,7 +384,6 @@ function openTaskForm(type, id) {
         title,
         note: String(f.get('note') || '').trim(),
         difficulty: f.get('difficulty') || 'easy',
-        statId: f.get('statId') || null,
         tags: parseTags(f.get('tags')),
       };
 
