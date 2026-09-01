@@ -109,7 +109,7 @@ function renderNutrition() {
     <div class="add-row">
       <button class="btn primary" data-add-food="photo">📷 По фото</button>
       <button class="btn" data-add-food="barcode">📦 Штрихкод</button>
-        <button class="btn" data-add-food="search">🔍 Найти продукт</button>
+      <button class="btn" data-add-food="search">🔍 Найти по названию</button>
       <button class="btn" data-add-food="dict">📖 Мои блюда</button>
       <button class="btn" data-add-food="manual">✏️ Вручную</button>
     </div>
@@ -452,61 +452,102 @@ function openDictPicker() {
   });
 }
 
-/* ---- Поиск по открытой базе Open Food Facts -------------------------------- */
+/* ---- Автоопределение КБЖУ по названию --------------------------------------
+   Встроенный справочник (js/food-db.js) отвечает мгновенно и офлайн — это
+   основной источник. Личные «Мои блюда» подмешиваются туда же. Открытая база
+   Open Food Facts подключается в фоне как дополнение для магазинных марок —
+   без неё поиск всё равно работает. */
 function openFoodSearch() {
-  openModal('Найти продукт', `
+  openModal('Найти по названию', `
     <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:0 0 12px;">
-      Поиск по открытой базе Open Food Facts — бесплатно и без ключей. Лучше всего находит
-      магазинные продукты; для домашней еды используй «Вручную» или фото.
+      Начни печатать — КБЖУ подставится сам из встроенного справочника обычных блюд.
+      Для магазинных марок надёжнее штрихкод — там цифры прямо с этикетки.
     </p>
-    <form id="foodSearchForm" style="display:flex;gap:8px;margin-bottom:14px;">
-      <input type="search" name="q" class="search-input" style="flex:1;max-width:none;" placeholder="Например: греческий йогурт" required autofocus>
-      <button type="submit" class="btn primary">Найти</button>
-    </form>
-    <div id="foodSearchResults"></div>`, modal => {
-    const results = modal.querySelector('#foodSearchResults');
-    modal.querySelector('#foodSearchForm').addEventListener('submit', async ev => {
-      ev.preventDefault();
-      const q = new FormData(ev.target).get('q');
-      results.innerHTML = `<div class="empty-hint">Ищу…</div>`;
-      try {
-        const found = await searchFood(q);
-        if (!found.length) { results.innerHTML = `<div class="empty-hint">Ничего не нашлось. Попробуй другое название или добавь вручную.</div>`; return; }
-        results.dataset.ok = '1';
-        results.innerHTML = `<div class="list">${found.map((p, i) => `
-          <div class="row-item dict-row" data-found="${i}">
-            <span class="ic">🔍</span>
-            <div class="main">
-              <div class="title">${esc(p.title)}</div>
-              <div class="meta"><span class="chip gold">${Math.round(p.per100.kcal)} ккал/100 г</span>
-                <span class="chip">Б ${p.per100.protein.toFixed(1)}</span>
-                <span class="chip">Ж ${p.per100.fat.toFixed(1)}</span>
-                <span class="chip">У ${p.per100.carbs.toFixed(1)}</span></div>
-            </div>
-          </div>`).join('')}</div>`;
-        results.querySelectorAll('[data-found]').forEach(row => row.addEventListener('click', () => {
-          const p = found[Number(row.dataset.found)];
-          closeModal();
-          openMealForm(null, {
-            title: p.title, grams: 100, per100: p.per100, source: 'search',
-            kcal: Math.round(p.per100.kcal), protein: +p.per100.protein.toFixed(1),
-            fat: +p.per100.fat.toFixed(1), carbs: +p.per100.carbs.toFixed(1),
-          });
-        }));
-      } catch (err) {
-        results.innerHTML = `<div class="warn-box">Поиск не сработал: ${esc(err.message)}.</div>
-          <p class="text-dim" style="font-size:12.5px;line-height:1.5;">
-            Открытая база иногда перегружена. Надёжнее отсканировать штрихкод — он берётся
-            из другого, стабильного раздела базы. Или введи данные вручную с упаковки.
-          </p>
-          <div class="form-actions" style="justify-content:flex-start;">
-            <button class="btn" id="toBarcode">📦 Штрихкод</button>
-            <button class="btn" id="toManual">✏️ Вручную</button>
-          </div>`;
-        results.querySelector('#toBarcode').addEventListener('click', () => { closeModal(); openBarcodeScanner(); });
-        results.querySelector('#toManual').addEventListener('click', () => { closeModal(); openMealForm(null, null); });
+    <input type="search" id="liveSearchInput" class="search-input wfull" style="max-width:none;"
+           placeholder="Например: гречка, курица, банан…" autofocus>
+    <div id="liveSearchResults" style="margin-top:12px;"></div>`, modal => {
+    const input = modal.querySelector('#liveSearchInput');
+    const out = modal.querySelector('#liveSearchResults');
+    let remoteTimer = null;
+    let requestSeq = 0;
+
+    const pick = (p, source) => {
+      closeModal();
+      openMealForm(null, {
+        title: p.title, grams: 100, per100: p.per100, source,
+        kcal: Math.round(p.per100.kcal), protein: +p.per100.protein.toFixed(1),
+        fat: +p.per100.fat.toFixed(1), carbs: +p.per100.carbs.toFixed(1),
+      });
+    };
+
+    const groupHtml = (heading, items, source, offset) => !items.length ? '' : `
+      <div class="section-label" style="margin:14px 0 8px;">${esc(heading)}</div>
+      <div class="list">${items.map((p, i) => `
+        <div class="row-item dict-row" data-pick="${source}:${offset + i}">
+          <span class="ic">${source === 'dict' ? '📖' : source === 'search' ? '🌐' : '📚'}</span>
+          <div class="main">
+            <div class="title">${esc(p.title)}</div>
+            <div class="meta"><span class="chip gold">${Math.round(p.per100.kcal)} ккал/100 г</span>
+              <span class="chip">Б ${p.per100.protein.toFixed(1)}</span>
+              <span class="chip">Ж ${p.per100.fat.toFixed(1)}</span>
+              <span class="chip">У ${p.per100.carbs.toFixed(1)}</span></div>
+          </div>
+        </div>`).join('')}</div>`;
+
+    let localResults = [], dictResults = [], remoteResults = [];
+    const bindPicks = () => {
+      modal.querySelectorAll('[data-pick]').forEach(row => row.addEventListener('click', () => {
+        const [source, idxStr] = row.dataset.pick.split(':');
+        const idx = Number(idxStr);
+        const p = source === 'dict' ? dictResults[idx] : source === 'search' ? remoteResults[idx] : localResults[idx];
+        if (p) pick(p, source);
+      }));
+    };
+
+    const renderAllGroups = () => {
+      out.innerHTML = groupHtml('Мои блюда', dictResults, 'dict', 0)
+        + groupHtml('Справочник блюд', localResults, 'local', 0)
+        + groupHtml('Открытая база продуктов', remoteResults, 'search', 0)
+        + (!dictResults.length && !localResults.length && !remoteResults.length
+            ? `<div class="empty-hint">Пока ничего не найдено. Продолжай печатать, попробуй другое слово или добавь вручную.</div>` : '');
+      bindPicks();
+    };
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      requestSeq++;
+      const mySeq = requestSeq;
+      clearTimeout(remoteTimer);
+
+      if (q.length < 2) {
+        localResults = []; dictResults = []; remoteResults = [];
+        out.innerHTML = `<div class="empty-hint">Введи хотя бы 2 буквы</div>`;
+        return;
+      }
+
+      // локальный поиск — мгновенно, без сети
+      localResults = searchLocalFoodDb(q, 10);
+      dictResults = state.nutrition.dictionary
+        .filter(d => d.title.toLowerCase().includes(q.toLowerCase()))
+        .slice(0, 8)
+        .map(d => ({ title: d.title, per100: d.per100 }));
+      remoteResults = [];
+      renderAllGroups();
+
+      // удалённый поиск — с задержкой, чтобы не долбить сеть на каждую букву
+      if (q.length >= 3 && navigator.onLine) {
+        remoteTimer = setTimeout(async () => {
+          try {
+            const found = await searchFood(q);
+            if (mySeq !== requestSeq) return; // ввод уже изменился
+            remoteResults = found.slice(0, 10);
+            renderAllGroups();
+          } catch (e) { /* открытая база недоступна — локальных результатов достаточно */ }
+        }, 450);
       }
     });
+
+    out.innerHTML = `<div class="empty-hint">Введи хотя бы 2 буквы</div>`;
   });
 }
 
