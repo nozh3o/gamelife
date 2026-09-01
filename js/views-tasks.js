@@ -3,7 +3,7 @@
    переключение сегментированным контролом сверху (в стиле iOS)
    ========================================================================= */
 
-const taskFilters = { type: 'todo', tag: '', showDone: false };
+const taskFilters = { type: 'todo', tag: '' };
 
 const TASK_TYPES = [
   { key: 'todo', label: 'Задачи', icon: '✅' },
@@ -11,7 +11,7 @@ const TASK_TYPES = [
   { key: 'daily', label: 'Ежедневки', icon: '📅' },
 ];
 const TASK_HINTS = {
-  todo: 'Разовые дела со сроком и чек-листом. За просрочку не наказывают.',
+  todo: 'Разовые дела. Записал — вычеркнул.',
   habit: 'Нажимаешь «+» сколько раз сделал за день, «−» — если сорвался.',
   daily: 'Отмечаешь раз в день по расписанию — ведёт стрик «дней подряд».',
 };
@@ -45,8 +45,6 @@ function renderTasks() {
       ${allTags.map(tag => `<button class="chip-btn ${taskFilters.tag === tag ? 'on' : ''}" data-tag="${esc(tag)}">#${esc(tag)}</button>`).join('')}
     </div>` : ''}
 
-    ${type === 'todo' ? `<label class="switch mt16"><input type="checkbox" id="showDone" ${taskFilters.showDone ? 'checked' : ''}><span>Показывать выполненные</span></label>` : ''}
-
     <div class="flat-list mt16" id="taskList"></div>`;
 
   document.getElementById('addTaskBtn').addEventListener('click', () => openTaskForm(type));
@@ -64,12 +62,6 @@ function renderTasks() {
     if (!b) return;
     taskFilters.tag = b.dataset.tag;
     renderTasks();
-  });
-
-  const showDoneEl = document.getElementById('showDone');
-  if (showDoneEl) showDoneEl.addEventListener('change', e => {
-    taskFilters.showDone = e.target.checked;
-    renderTaskLists();
   });
 
   renderTaskLists();
@@ -100,7 +92,7 @@ function renderTaskLists() {
       .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt.localeCompare(a.createdAt));
     const done = items.filter(t => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
     list.innerHTML = (active.length ? active.map(todoCardHtml).join('') : `<div class="empty-hint">Активных задач нет</div>`)
-      + (taskFilters.showDone && done.length
+      + (done.length
         ? `<div class="col-divider">Выполнено (${done.length})</div>` + done.slice(0, 40).map(todoCardHtml).join('')
         : '');
   }
@@ -301,24 +293,15 @@ function openTaskForm(type, id) {
       ${type !== 'todo' ? `<label class="field" style="max-width:90px;">Иконка
         <input type="text" name="icon" value="${esc(t.icon || (type === 'habit' ? '🔁' : '📅'))}" maxlength="4">
       </label>` : ''}
-      <label class="field" style="grid-column: span 2;">Название
+      <label class="field" style="grid-column: 1/-1;">Название
         <input type="text" name="title" value="${esc(t.title || '')}" placeholder="Что нужно делать?" required autofocus>
-      </label>
-      <label class="field" style="grid-column: 1/-1;">Заметка (необязательно)
-        <textarea name="note" rows="2" placeholder="Детали, зачем это нужно…">${esc(t.note || '')}</textarea>
-      </label>
-      <label class="field">Сложность
-        <select name="difficulty">${difficultyOptions(t.difficulty || 'easy')}</select>
-      </label>
-      <label class="field">Теги через запятую
-        <input type="text" name="tags" value="${esc((t.tags || []).join(', '))}" placeholder="дом, спорт">
       </label>
 
       ${type === 'habit' ? `
       <div class="field" style="grid-column: 1/-1;">Тип привычки
         <div class="check-row">
-          <label class="switch"><input type="checkbox" name="positive" ${t.positive !== false ? 'checked' : ''}><span>➕ Есть кнопка «сделал» (награда)</span></label>
-          <label class="switch"><input type="checkbox" name="negative" ${t.negative ? 'checked' : ''}><span>➖ Есть кнопка «сорвался» (урон)</span></label>
+          <label class="switch"><input type="checkbox" name="positive" ${t.positive !== false ? 'checked' : ''}><span>➕ Есть кнопка «сделал»</span></label>
+          <label class="switch"><input type="checkbox" name="negative" ${t.negative ? 'checked' : ''}><span>➖ Есть кнопка «сорвался»</span></label>
         </div>
       </div>` : ''}
 
@@ -329,16 +312,6 @@ function openTaskForm(type, id) {
             `<label class="day-toggle"><input type="checkbox" name="day" value="${n}" ${days.includes(n) ? 'checked' : ''}><span>${WEEKDAYS[n]}</span></label>`).join('')}
         </div>
       </div>` : ''}
-
-      ${type === 'todo' ? `
-      <label class="field">Срок (необязательно)
-        <input type="date" name="due" value="${esc(t.due || '')}">
-      </label>` : ''}
-
-      ${type !== 'habit' ? `
-      <label class="field" style="grid-column: 1/-1;">Чек-лист — по одному пункту на строку
-        <textarea name="checklist" rows="3" placeholder="Купить продукты&#10;Помыть посуду">${esc((t.checklist || []).map(c => c.text).join('\n'))}</textarea>
-      </label>` : ''}
 
       <div class="form-actions" style="grid-column: 1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
@@ -354,19 +327,7 @@ function openTaskForm(type, id) {
       const title = String(f.get('title') || '').trim();
       if (!title) return;
 
-      const oldChecklist = t.checklist || [];
-      const checklist = String(f.get('checklist') || '').split('\n').map(s => s.trim()).filter(Boolean)
-        .map(text => {
-          const prev = oldChecklist.find(c => c.text === text);
-          return { id: prev ? prev.id : uid(), text, done: prev ? prev.done : false };
-        });
-
-      const base = {
-        title,
-        note: String(f.get('note') || '').trim(),
-        difficulty: f.get('difficulty') || 'easy',
-        tags: parseTags(f.get('tags')),
-      };
+      const base = { title };
 
       mutate(() => {
         if (type === 'habit') {
@@ -380,12 +341,12 @@ function openTaskForm(type, id) {
         if (type === 'daily') {
           const picked = f.getAll('day').map(Number);
           const data = { ...base, icon: String(f.get('icon') || '📅').trim() || '📅',
-            days: picked.length ? picked : [0, 1, 2, 3, 4, 5, 6], checklist };
+            days: picked.length ? picked : [0, 1, 2, 3, 4, 5, 6] };
           if (existing) { Object.assign(existing, data); recomputeStreak(existing); }
           else state.dailies.push({ id: uid(), ...data, history: [], streak: 0, best: 0, createdAt: nowISO() });
         }
         if (type === 'todo') {
-          const data = { ...base, due: f.get('due') || null, checklist };
+          const data = { ...base };
           if (existing) Object.assign(existing, data);
           else state.todos.push({ id: uid(), ...data, done: false, doneAt: null, createdAt: nowISO() });
         }
