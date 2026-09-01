@@ -47,7 +47,7 @@ function renderTasks() {
 
     ${type === 'todo' ? `<label class="switch mt16"><input type="checkbox" id="showDone" ${taskFilters.showDone ? 'checked' : ''}><span>Показывать выполненные</span></label>` : ''}
 
-    <div class="list mt16" id="taskList"></div>`;
+    <div class="flat-list mt16" id="taskList"></div>`;
 
   document.getElementById('addTaskBtn').addEventListener('click', () => openTaskForm(type));
 
@@ -108,27 +108,32 @@ function renderTaskLists() {
   bindTaskHandlers();
 }
 
-/* ---- Карточки ---------------------------------------------------------- */
+/* ---- Карточки ------------------------------------------------------------
+   Минималистичный плоский вид: заголовок + (по желанию) заметка, вся
+   дополнительная информация — тихой мелкой строкой под названием, а не
+   цветными чипами. Чекбокс/кнопки — справа, кнопки редактирования
+   полупрозрачны, пока на строку не наведёшься (на телефоне видны всегда). */
 function habitCardHtml(h) {
   const net = (h.upCount || 0) - (h.downCount || 0);
   const toneClass = net > 3 ? 'tone-good' : net < -3 ? 'tone-bad' : '';
+  const subParts = [];
+  if (net) subParts.push(`<span class="${net > 0 ? '' : 'warn'}">баланс ${net > 0 ? '+' : ''}${net}</span>`);
+  if (h.todayCount) subParts.push(`<span>сегодня ${h.todayCount}</span>`);
+  if ((h.tags || []).length) subParts.push(`<span>${h.tags.map(t => '#' + esc(t)).join(' ')}</span>`);
+
   return `<div class="task-card habit ${toneClass}">
-    <div class="task-btns">
-      ${h.positive ? `<button class="pm-btn up" data-habit-up="${h.id}" title="Сделал">＋</button>` : ''}
-      ${h.negative ? `<button class="pm-btn down" data-habit-down="${h.id}" title="Сорвался">−</button>` : ''}
-    </div>
     <div class="task-body">
       <div class="task-title">${esc(h.icon || '🔁')} ${esc(h.title)}</div>
       ${h.note ? `<div class="task-note">${esc(h.note)}</div>` : ''}
-      <div class="task-meta">
-        ${diffChip(h.difficulty)}${tagChips(h.tags)}
-        <span class="chip ${net >= 0 ? 'green' : 'red'}">баланс: ${net > 0 ? '+' : ''}${net}</span>
-        ${h.todayCount ? `<span class="chip">сегодня: ${h.todayCount}</span>` : ''}
-      </div>
+      ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
       <button class="btn ghost small icon-only" data-edit="habit:${h.id}" title="Изменить">✎</button>
       <button class="btn ghost small icon-only danger-text" data-del="habit:${h.id}" title="Удалить">✕</button>
+    </div>
+    <div class="task-btns">
+      ${h.positive ? `<button class="pm-btn up" data-habit-up="${h.id}" title="Сделал">＋</button>` : ''}
+      ${h.negative ? `<button class="pm-btn down" data-habit-down="${h.id}" title="Сорвался">−</button>` : ''}
     </div>
   </div>`;
 }
@@ -136,36 +141,26 @@ function habitCardHtml(h) {
 function dailyCardHtml(d) {
   const due = isDailyDueToday(d);
   const done = isDailyDoneToday(d);
-  const dots = last7Days().map(ds => {
-    const dt = parseDate(ds);
-    const scheduled = d.days.includes(dt.getDay());
-    const hit = d.history.includes(ds);
-    return `<div class="dot ${hit ? 'on' : scheduled ? 'sched' : ''}" title="${fmtDateHuman(ds)}"></div>`;
-  }).join('');
   const checklistDone = (d.checklist || []).filter(c => c.done).length;
+  const subParts = [];
+  if (d.streak > 0) subParts.push(`<span class="fire">🔥 ${d.streak}</span>`);
+  if ((d.checklist || []).length) subParts.push(`<span>${checklistDone}/${d.checklist.length}</span>`);
+  if (!due) subParts.push(`<span>сегодня не по плану</span>`);
+  if ((d.tags || []).length) subParts.push(`<span>${d.tags.map(t => '#' + esc(t)).join(' ')}</span>`);
 
   return `<div class="task-card daily ${done ? 'is-done' : ''} ${!due ? 'not-due' : ''}">
-    <button class="check-btn ${done ? 'checked' : ''}" data-daily="${d.id}" title="${done ? 'Отменить' : 'Выполнить'}">${done ? '✓' : ''}</button>
     <div class="task-body">
       <div class="task-title ${done ? 'strike' : ''}">${esc(d.icon || '📅')} ${esc(d.title)}</div>
-      ${d.note ? `<div class="task-note">${esc(d.note)}</div>` : ''}
+      ${d.note ? `<div class="task-note ${done ? 'strike' : ''}">${esc(d.note)}</div>` : ''}
       ${(d.checklist || []).length ? `<div class="checklist">${d.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="daily:${d.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
-      <div class="task-meta">
-        ${diffChip(d.difficulty)}${tagChips(d.tags)}
-        <span class="chip ${d.streak > 0 ? 'gold' : ''}">🔥 ${d.streak} ${plural(d.streak, 'день', 'дня', 'дней')}</span>
-        ${d.best ? `<span class="chip">рекорд ${d.best}</span>` : ''}
-        ${(d.checklist || []).length ? `<span class="chip">${checklistDone}/${d.checklist.length}</span>` : ''}
-        ${!due ? `<span class="chip">сегодня не по плану</span>` : ''}
-      </div>
-      <div class="days-row">${d.days.length === 7 ? '<span class="chip">каждый день</span>'
-        : d.days.map(n => `<span class="chip day">${WEEKDAYS[n]}</span>`).join('')}</div>
-      <div class="dot-row">${dots}</div>
+      ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
       <button class="btn ghost small icon-only" data-edit="daily:${d.id}" title="Изменить">✎</button>
       <button class="btn ghost small icon-only danger-text" data-del="daily:${d.id}" title="Удалить">✕</button>
     </div>
+    <button class="check-btn ${done ? 'checked' : ''}" data-daily="${d.id}" title="${done ? 'Отменить' : 'Выполнить'}">${done ? '✓' : ''}</button>
   </div>`;
 }
 
@@ -173,34 +168,25 @@ function todoCardHtml(t) {
   const overdue = !t.done && t.due && t.due < todayStr();
   const dueSoon = !t.done && t.due && t.due === todayStr();
   const checklistDone = (t.checklist || []).filter(c => c.done).length;
+  const subParts = [];
+  if (t.due) subParts.push(`<span class="${overdue ? 'warn' : dueSoon ? 'soon' : ''}">${overdue ? 'просрочено ' : 'до '}${fmtDateHuman(t.due)}</span>`);
+  if ((t.checklist || []).length) subParts.push(`<span>${checklistDone}/${t.checklist.length}</span>`);
+  if ((t.tags || []).length) subParts.push(`<span>${t.tags.map(tag => '#' + esc(tag)).join(' ')}</span>`);
+
   return `<div class="task-card todo ${t.done ? 'is-done' : ''} ${overdue ? 'overdue' : ''}">
-    <button class="check-btn ${t.done ? 'checked' : ''}" data-todo="${t.id}" title="${t.done ? 'Вернуть в работу' : 'Выполнить'}">${t.done ? '✓' : ''}</button>
     <div class="task-body">
       <div class="task-title ${t.done ? 'strike' : ''}">${esc(t.title)}</div>
-      ${t.note ? `<div class="task-note">${esc(t.note)}</div>` : ''}
+      ${t.note ? `<div class="task-note ${t.done ? 'strike' : ''}">${esc(t.note)}</div>` : ''}
       ${(t.checklist || []).length ? `<div class="checklist">${t.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="todo:${t.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
-      <div class="task-meta">
-        ${diffChip(t.difficulty)}${tagChips(t.tags)}
-        ${(t.checklist || []).length ? `<span class="chip">${checklistDone}/${t.checklist.length}</span>` : ''}
-        ${t.due ? `<span class="chip ${overdue ? 'red' : dueSoon ? 'gold' : ''}">${overdue ? '⏰ просрочено ' : '📆 до '}${fmtDateHuman(t.due)}</span>` : ''}
-      </div>
+      ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
       <button class="btn ghost small icon-only" data-edit="todo:${t.id}" title="Изменить">✎</button>
       <button class="btn ghost small icon-only danger-text" data-del="todo:${t.id}" title="Удалить">✕</button>
     </div>
+    <button class="check-btn ${t.done ? 'checked' : ''}" data-todo="${t.id}" title="${t.done ? 'Вернуть в работу' : 'Выполнить'}">${t.done ? '✓' : ''}</button>
   </div>`;
-}
-
-function last7Days() {
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(dateStr(d));
-  }
-  return days;
 }
 
 /* ---- Обработчики -------------------------------------------------------- */
