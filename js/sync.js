@@ -211,8 +211,17 @@ async function syncNow(manual = false) {
       return;
     }
 
-    // менялось и там, и там — решать должен человек
-    askConflict(remote, remoteAt);
+    // менялось и там, и там — не спрашиваем, просто побеждает более свежая версия
+    // (местная копия всё равно уходит в резервную копию перед перезаписью — applyRemoteState)
+    if (remoteAt > localAt) {
+      applyRemoteState(remote.data);
+      markSynced({ updated_at: remote.updated_at });
+      toast(`☁️ Подтянута более новая версия с «${remote.device || 'другого устройства'}»`, 'green');
+    } else {
+      const row = await pushRemote();
+      markSynced(row);
+      toast('☁️ Оставлена версия с этого устройства (она новее)', 'green');
+    }
   } catch (e) {
     console.warn('Синхронизация не удалась:', e);
     setSyncStatus('error', e.message || 'Ошибка синхронизации');
@@ -233,68 +242,6 @@ function markSynced(row) {
 function setSyncStatus(kind, text) {
   syncStatus = { kind, text };
   renderSyncBadge();
-}
-
-/* ---- Разрешение конфликта -------------------------------------------------- */
-function stateSummary(s) {
-  try {
-    const lvl = levelInfo(s.player.xp).level;
-    const open = (s.todos || []).filter(t => !t.done).length;
-    const done = (s.todos || []).filter(t => t.done).length;
-    const daily = (s.dailies || []).reduce((n, d) => n + (d.history || []).length, 0);
-    const money = (s.finance && s.finance.transactions || []).length;
-    return `уровень ${lvl} · ${fmtNum(s.player.xp)} XP · 🪙 ${fmtNum(s.player.gold)}<br>`
-         + `${open} ${plural(open, 'открытое дело', 'открытых дела', 'открытых дел')} · `
-         + `${done} ${plural(done, 'выполнено', 'выполнено', 'выполнено')} · `
-         + `${daily} ${plural(daily, 'отметка', 'отметки', 'отметок')} · `
-         + `${money} ${plural(money, 'операция', 'операции', 'операций')}`;
-  } catch (e) { return 'не удалось прочитать'; }
-}
-
-function askConflict(remote, remoteAt) {
-  const localWhen = new Date(state.updatedAt || Date.now()).toLocaleString('ru-RU');
-  const remoteWhen = new Date(remoteAt).toLocaleString('ru-RU');
-
-  openModal('Расхождение сохранений', `
-    <p style="font-size:14px;line-height:1.55;margin:0 0 14px;">
-      Прогресс менялся и здесь, и на другом устройстве. Слить автоматически нельзя —
-      выбери, какую версию оставить. Вторая сохранится в резервной копии.
-    </p>
-    <div class="conflict-opt" data-keep="local">
-      <div class="conflict-head">📱 Это устройство — «${esc(syncCfg.deviceName)}»</div>
-      <div class="conflict-sub">${esc(localWhen)}</div>
-      <div class="conflict-sub">${stateSummary(state)}</div>
-    </div>
-    <div class="conflict-opt" data-keep="remote">
-      <div class="conflict-head">☁️ Облако — «${esc(remote.device || 'другое устройство')}»</div>
-      <div class="conflict-sub">${esc(remoteWhen)}</div>
-      <div class="conflict-sub">${stateSummary(normalize(remote.data, defaultState()))}</div>
-    </div>
-    <div class="form-actions"><button class="btn ghost" data-later>Решу позже</button></div>`, modal => {
-    modal.querySelector('[data-later]').addEventListener('click', closeModal);
-    modal.querySelectorAll('[data-keep]').forEach(el => el.addEventListener('click', async () => {
-      closeModal();
-      syncBusy = true;
-      try {
-        if (el.dataset.keep === 'remote') {
-          applyRemoteState(remote.data);
-          markSynced({ updated_at: remote.updated_at });
-          toast('☁️ Оставлена облачная версия', 'green');
-        } else {
-          state.updatedAt = Date.now();
-          const row = await pushRemote();
-          markSynced(row);
-          toast('Оставлена версия этого устройства', 'green');
-        }
-      } catch (e) {
-        setSyncStatus('error', e.message || 'Ошибка');
-        toast('Не удалось сохранить выбор: ' + (e.message || ''), 'red');
-      } finally {
-        syncBusy = false;
-        renderAll();
-      }
-    }));
-  });
 }
 
 /* ---- Автоматическая синхронизация ------------------------------------------ */
@@ -458,7 +405,8 @@ function syncActiveHtml() {
       <span>Синхронизировать автоматически</span></label>
     <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:10px 0 0;">
       Прогресс выгружается через несколько секунд после изменений и подтягивается при открытии
-      приложения. Если менял на двух устройствах офлайн — приложение спросит, какую версию оставить.
+      приложения. Если менял на двух устройствах офлайн — победит более свежая версия, без вопросов;
+      предыдущая всё равно на секунду сохраняется в резервную копию браузера на случай сомнений.
     </p>
     <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap;margin-top:14px;">
       <button class="btn primary" id="syncNowBtn">☁️ Синхронизировать сейчас</button>
