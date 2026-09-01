@@ -119,6 +119,7 @@ function init() {
   });
 
   window.addEventListener('resize', positionNavIndicators);
+  blockPinchZoom();
 
   document.getElementById('todayDate').textContent =
     new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -137,6 +138,25 @@ function init() {
     saveState();
     toast('Данные из прошлой версии перенесены', 'green');
   }
+}
+
+/* ---- Блокировка приближения жестами -------------------------------------
+   iOS Safari игнорирует user-scalable=no в самом Safari (доступность),
+   а touch-action не всегда полностью гасит щипок — поэтому вручную
+   гасим жесты на уровне событий, как делают нативные обёртки. */
+function blockPinchZoom() {
+  // Safari: специальные жестовые события для щипка (двумя пальцами)
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('gesturechange', e => e.preventDefault());
+  document.addEventListener('gestureend', e => e.preventDefault());
+
+  // Chrome/Android и подстраховка для Safari: щипок — это ≥2 касаний.
+  // Двойной тап отдельно не гасим здесь — за это отвечает touch-action
+  // в CSS, а ловить его через touchend рискованно: preventDefault там
+  // может съесть настоящий клик при быстрых повторных тапах по кнопке.
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
 }
 
 /* ---- Установка на телефон и офлайн-режим -------------------------------- */

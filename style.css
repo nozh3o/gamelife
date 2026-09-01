@@ -66,7 +66,7 @@ body {
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  touch-action: manipulation; /* без задержки/зума на двойном тапе — ощущается как приложение, не сайт */
+  touch-action: pan-x pan-y; /* только скролл — ни щипок, ни двойной тап не зумят */
 }
 button, input, select, textarea { font-family: inherit; color: inherit; }
 ::selection { background: var(--accent); color: #fff; }
