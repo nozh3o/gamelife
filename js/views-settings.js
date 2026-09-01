@@ -121,7 +121,7 @@ function phoneCardHtml() {
        </div>`;
 
   return `<p class="text-dim" style="font-size:13px;line-height:1.5;margin:0 0 12px;">
-      GameLife ставится как обычное приложение — и на телефон, и на компьютер:
+      One ставится как обычное приложение — и на телефон, и на компьютер:
       своя иконка, отдельное окно, работа без интернета.
     </p>
     ${install}
@@ -205,11 +205,11 @@ function importData(e) {
     try {
       parsed = JSON.parse(reader.result);
     } catch (err) {
-      toast('Файл повреждён или это не бэкап GameLife', 'red');
+      toast('Файл повреждён или это не бэкап One', 'red');
       return;
     }
     if (!parsed || !parsed.player) {
-      toast('Не похоже на бэкап GameLife', 'red');
+      toast('Не похоже на бэкап One', 'red');
       return;
     }
     confirmAction('Импортировать файл? Текущий прогресс в браузере будет заменён.', () => {
