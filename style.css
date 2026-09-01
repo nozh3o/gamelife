@@ -66,6 +66,7 @@ body {
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  touch-action: manipulation; /* без задержки/зума на двойном тапе — ощущается как приложение, не сайт */
 }
 button, input, select, textarea { font-family: inherit; color: inherit; }
 ::selection { background: var(--accent); color: #fff; }
@@ -831,6 +832,10 @@ code {
   .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
+  /* iOS сам зумит страницу при фокусе на поле с шрифтом меньше 16px —
+     держим все поля ввода не мельче, чтобы этого не происходило */
+  input, select, textarea { font-size: 16px !important; }
+
   .app { grid-template-columns: 1fr; }
   .mobile-menu-btn { display: none; }
   .bottom-nav { display: flex; }
