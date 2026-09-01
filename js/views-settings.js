@@ -24,8 +24,8 @@ function renderSettings() {
         <div class="card-title">Оформление</div>
         <div class="field">Тема
           <div class="seg" id="themeSeg">
-            <button class="seg-btn ${state.settings.theme === 'dark' ? 'on' : ''}" data-theme="dark">🌙 Тёмная</button>
-            <button class="seg-btn ${state.settings.theme === 'light' ? 'on' : ''}" data-theme="light">☀️ Светлая</button>
+            <button class="seg-btn ${state.settings.theme === 'dark' ? 'on' : ''}" data-theme="dark">${icon('moon',14)} Тёмная</button>
+            <button class="seg-btn ${state.settings.theme === 'light' ? 'on' : ''}" data-theme="light">${icon('sun',14)} Светлая</button>
           </div>
         </div>
         <div class="field mt16">Акцентный цвет
@@ -39,8 +39,8 @@ function renderSettings() {
           </select>
         </label>
         <hr class="hr">
-        <label class="switch"><input type="checkbox" id="soundToggle" ${state.settings.sound ? 'checked' : ''}><span>🔊 Звук при выполнении</span></label>
-        <label class="switch mt8"><input type="checkbox" id="confettiToggle" ${state.settings.confetti ? 'checked' : ''}><span>🎉 Конфетти на важных событиях</span></label>
+        <label class="switch"><input type="checkbox" id="soundToggle" ${state.settings.sound ? 'checked' : ''}><span>${icon('volume',14)} Звук при выполнении</span></label>
+        <label class="switch mt8"><input type="checkbox" id="confettiToggle" ${state.settings.confetti ? 'checked' : ''}><span>${icon('sparkle',14)} Конфетти на важных событиях</span></label>
       </div>
 
     <div class="grid cols-2 mt16">
@@ -52,8 +52,8 @@ function renderSettings() {
         </p>
         ${backupWarningHtml()}
         <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap;">
-          <button class="btn" id="exportBtn">⬇️ Экспорт в файл</button>
-          <label class="btn" style="cursor:pointer;">⬆️ Импорт из файла
+          <button class="btn" id="exportBtn">${icon('download',15)} Экспорт в файл</button>
+          <label class="btn" style="cursor:pointer;">${icon('upload',15)} Импорт из файла
             <input type="file" id="importInput" accept="application/json" style="display:none;">
           </label>
         </div>
@@ -66,7 +66,7 @@ function renderSettings() {
           Перед этим лучше сделать экспорт.
         </p>
         <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap;">
-          <button class="btn danger-solid" id="resetBtn">🗑️ Удалить всё</button>
+          <button class="btn danger-solid" id="resetBtn">${icon('trash',15)} Удалить всё</button>
         </div>
       </div>
     </div>
@@ -84,12 +84,12 @@ function renderSettings() {
     <div class="card mt16">
       <div class="card-title">Как это работает</div>
       <div class="help-grid">
-        <div><b>🔁 Привычки</b><p>Нажимаешь «+» столько раз, сколько сделал за день. «−» — за срыв. Просто счётчик.</p></div>
-        <div><b>📅 Ежедневки</b><p>Отмечаешь раз в день по расписанию. Пропуск обнуляет стрик «дней подряд».</p></div>
-        <div><b>✅ Задачи</b><p>Разовые дела. Записал — вычеркнул.</p></div>
-        <div><b>🎯 Цели</b><p>Числовые, пошаговые или простые. Можно привязать денежную награду.</p></div>
-        <div><b>💰 Финансы</b><p>Настоящие счета и операции в твоей валюте.</p></div>
-        <div><b>🥗 Питание</b><p>Дневная норма БЖУ и дневник приёмов пищи.</p></div>
+        <div><b>${icon('repeat',14)} Привычки</b><p>Нажимаешь «+» столько раз, сколько сделал за день. «−» — за срыв. Просто счётчик.</p></div>
+        <div><b>${icon('calendar',14)} Ежедневки</b><p>Отмечаешь раз в день по расписанию. Пропуск обнуляет стрик «дней подряд».</p></div>
+        <div><b>${icon('check',14)} Задачи</b><p>Разовые дела. Записал — вычеркнул.</p></div>
+        <div><b>${icon('target',14)} Цели</b><p>Числовые, пошаговые или простые. Можно привязать денежную награду.</p></div>
+        <div><b>${icon('wallet',14)} Финансы</b><p>Настоящие счета и операции в твоей валюте.</p></div>
+        <div><b>${icon('leaf',14)} Питание</b><p>Дневная норма БЖУ и дневник приёмов пищи.</p></div>
       </div>
     </div>`;
 
@@ -113,7 +113,7 @@ function phoneCardHtml() {
   }
 
   const install = canInstall()
-    ? `<button class="btn primary" id="installBtn">📱 Установить как приложение</button>`
+    ? `<button class="btn primary" id="installBtn">${icon('phone',15)} Установить как приложение</button>`
     : `<div class="help-grid" style="margin-top:4px;">
          <div><b>Android · Chrome</b><p>Меню ⋮ → «Установить приложение» (или «Добавить на главный экран»).</p></div>
          <div><b>iPhone · Safari</b><p>Кнопка «Поделиться» → «На экран «Домой»». В Chrome на iPhone этого пункта нет — нужен именно Safari.</p></div>

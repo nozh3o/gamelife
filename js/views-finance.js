@@ -5,23 +5,35 @@
    ========================================================================= */
 
 const DEFAULT_EXPENSE_CATS = [
-  { name: 'Еда', icon: '🍔' }, { name: 'Жильё', icon: '🏠' }, { name: 'Транспорт', icon: '🚗' },
-  { name: 'Развлечения', icon: '🎮' }, { name: 'Здоровье', icon: '💊' }, { name: 'Одежда', icon: '👕' },
-  { name: 'Образование', icon: '📚' }, { name: 'Подписки', icon: '📱' }, { name: 'Связь', icon: '📶' },
-  { name: 'Прочее', icon: '📦' },
+  { name: 'Еда', icon: 'utensils' }, { name: 'Жильё', icon: 'home' }, { name: 'Транспорт', icon: 'car' },
+  { name: 'Развлечения', icon: 'music' }, { name: 'Здоровье', icon: 'heart' }, { name: 'Одежда', icon: 'shirt' },
+  { name: 'Образование', icon: 'book' }, { name: 'Подписки', icon: 'phone' }, { name: 'Связь', icon: 'wifi' },
+  { name: 'Прочее', icon: 'box' },
 ];
 const DEFAULT_INCOME_CATS = [
-  { name: 'Зарплата', icon: '💼' }, { name: 'Подработка', icon: '🛠️' }, { name: 'Фриланс', icon: '💻' },
-  { name: 'Подарок', icon: '🎁' }, { name: 'Инвестиции', icon: '📈' }, { name: 'Прочее', icon: '📦' },
+  { name: 'Зарплата', icon: 'briefcase' }, { name: 'Подработка', icon: 'tool' }, { name: 'Фриланс', icon: 'laptop' },
+  { name: 'Подарок', icon: 'gift' }, { name: 'Инвестиции', icon: 'chart' }, { name: 'Прочее', icon: 'box' },
 ];
 const ACCOUNT_TYPES = [
-  { id: 'cash', label: 'Наличные', icon: '💵' },
-  { id: 'card', label: 'Дебетовая карта', icon: '💳' },
-  { id: 'credit', label: 'Кредитная карта', icon: '💳' },
-  { id: 'savings', label: 'Накопительный счёт', icon: '🏦' },
-  { id: 'other', label: 'Другое', icon: '👛' },
+  { id: 'cash', label: 'Наличные', icon: 'banknote' },
+  { id: 'card', label: 'Дебетовая карта', icon: 'card' },
+  { id: 'credit', label: 'Кредитная карта', icon: 'card' },
+  { id: 'savings', label: 'Накопительный счёт', icon: 'bank' },
+  { id: 'other', label: 'Другое', icon: 'wallet' },
 ];
 const CAT_COLORS = ['#7c5cff', '#5c8dff', '#3ecf8e', '#f5c04a', '#ff9f5c', '#ff5c72', '#35b8e0', '#b06cff', '#22c08a', '#e8a33d'];
+// набор иконок, из которых можно выбрать при создании своей категории —
+// вместо свободного ввода эмодзи (см. CAT_ICON_CHOICES ниже)
+const CAT_ICON_CHOICES = [
+  'utensils', 'home', 'car', 'music', 'heart', 'shirt', 'book', 'phone', 'wifi', 'box',
+  'briefcase', 'tool', 'laptop', 'gift', 'chart', 'star', 'globe', 'camera', 'dumbbell', 'sparkle',
+  'wallet', 'card', 'banknote', 'bank',
+];
+/* Иконка категории/счёта хранится ключом набора ICONS; если в данных
+   остался старый эмодзи-символ — просто показываем его как есть. */
+function catIconHtml(key, size = 16) {
+  return ICONS[key] ? icon(key, size) : key ? esc(key) : icon('box', size);
+}
 
 let financeMonthFilter = '';
 let financeAccountFilter = '';
@@ -38,7 +50,7 @@ function expenseCats() { return [...DEFAULT_EXPENSE_CATS, ...state.finance.custo
 function incomeCats() { return [...DEFAULT_INCOME_CATS, ...state.finance.customCategories.income]; }
 function catIcon(name, type) {
   const found = (type === 'income' ? incomeCats() : expenseCats()).find(c => c.name === name);
-  return found ? found.icon : '📦';
+  return found ? found.icon : 'box';
 }
 function accountTypeDef(id) { return ACCOUNT_TYPES.find(t => t.id === id) || ACCOUNT_TYPES[1]; }
 
@@ -108,8 +120,8 @@ function renderFinance() {
         <p class="page-sub">Настоящие деньги в ${esc(state.settings.currency)}. Несколько счетов, лимиты трат и куда всё уходит.</p>
       </div>
       <div class="head-actions">
-        <button class="btn" id="addAccount">＋ Счёт</button>
-        <button class="btn primary" id="addTx">＋ Операция</button>
+        <button class="btn" id="addAccount">${icon('plus',15)} Счёт</button>
+        <button class="btn primary" id="addTx">${icon('plus',15)} Операция</button>
       </div>
     </div>
 
@@ -131,7 +143,7 @@ function renderFinance() {
         <div class="kpi-sub">норма сбережений ${savingRate}%</div></div>
     </div>
 
-    <div class="section-label">Лимиты трат <button class="btn small" id="addBudget" style="margin-left:8px;">＋ Добавить</button></div>
+    <div class="section-label">Лимиты трат <button class="btn small" id="addBudget" style="margin-left:8px;">${icon('plus',13)} Добавить</button></div>
     <div class="grid cols-3" id="budgetGrid"></div>
 
     <div class="grid cols-2 mt16">
@@ -157,7 +169,7 @@ function renderFinance() {
     <div class="section-label">История операций
       <select id="accFilter" class="inline-select">
         <option value="">все счета</option>
-        ${state.finance.accounts.map(a => `<option value="${a.id}" ${financeAccountFilter === a.id ? 'selected' : ''}>${a.icon} ${esc(a.name)}</option>`).join('')}
+        ${state.finance.accounts.map(a => `<option value="${a.id}" ${financeAccountFilter === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}
       </select>
       <select id="monthFilter" class="inline-select">
         <option value="">все месяцы</option>
@@ -186,10 +198,10 @@ function renderAccountsRow() {
     const usedPct = isCredit && a.creditLimit ? clamp(Math.round((-a.balance / a.creditLimit) * 100), 0, 100) : 0;
     return `<div class="account-card" data-acc-click="${a.id}" style="--acc-color:${a.color || '#7c5cff'}">
       <div class="account-top">
-        <span class="account-ic">${a.icon}</span>
+        <span class="account-ic">${catIconHtml(a.icon, 20)}</span>
         <div class="account-actions">
-          <button class="btn ghost small icon-only" data-acc-edit="${a.id}" title="Изменить">✎</button>
-          <button class="btn ghost small icon-only danger-text" data-acc-del="${a.id}" title="Удалить">✕</button>
+          <button class="btn ghost small icon-only" data-acc-edit="${a.id}" title="Изменить">${icon('edit',14)}</button>
+          <button class="btn ghost small icon-only danger-text" data-acc-del="${a.id}" title="Удалить">${icon('x',13)}</button>
         </div>
       </div>
       <div class="account-name">${esc(a.name)}</div>
@@ -201,7 +213,7 @@ function renderAccountsRow() {
       ` : ''}
     </div>`;
   }).join('') + `<button class="account-card add-account-tile" id="accAddTile">
-      <span style="font-size:24px;">＋</span><span style="font-size:12.5px;">Новый счёт</span>
+      ${icon('plus',22)}<span style="font-size:12.5px;">Новый счёт</span>
     </button>`;
 
   wrap.querySelectorAll('[data-acc-edit]').forEach(b => b.addEventListener('click', e => {
@@ -228,17 +240,20 @@ function openAccountForm(existing) {
 
   openModal(isEdit ? 'Изменить счёт' : 'Новый счёт', `
     <form id="accForm" class="form-grid">
-      <label class="field" style="max-width:90px;">Иконка
-        <input type="text" name="icon" value="${esc(a.icon || accountTypeDef(type).icon)}" maxlength="4">
-      </label>
-      <label class="field" style="grid-column:span 2;">Название
+      <label class="field" style="grid-column:1/-1;">Название
         <input type="text" name="name" value="${esc(a.name || '')}" placeholder="Например: Kaspi Gold" required autofocus>
       </label>
       <label class="field" style="grid-column:1/-1;">Тип счёта
         <select name="type" id="accType">
-          ${ACCOUNT_TYPES.map(t => `<option value="${t.id}" ${type === t.id ? 'selected' : ''}>${t.icon} ${t.label}</option>`).join('')}
+          ${ACCOUNT_TYPES.map(t => `<option value="${t.id}" ${type === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}
         </select>
       </label>
+      <div class="field" style="grid-column:1/-1;">Иконка
+        <div class="avatar-picker" id="accIconPicker">
+          ${CAT_ICON_CHOICES.map(k => `<button type="button" class="avatar-opt ${(a.icon || accountTypeDef(type).icon) === k ? 'on' : ''}" data-icon="${k}" title="${k}">${icon(k, 19)}</button>`).join('')}
+        </div>
+        <input type="hidden" name="icon" value="${esc(a.icon || accountTypeDef(type).icon)}">
+      </div>
       <label class="field">${isEdit ? 'Текущий баланс' : 'Начальный баланс'}
         <input type="number" name="balance" step="0.01" value="${a.balance ?? 0}">
       </label>
@@ -254,12 +269,20 @@ function openAccountForm(existing) {
       ${isEdit ? `<p class="text-dim" style="font-size:12px;grid-column:1/-1;margin:0;">Баланс можно поправить прямо здесь — например, после сверки с настоящим счётом. История операций при этом не меняется.</p>` : ''}
       <div class="form-actions" style="grid-column:1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${isEdit ? '💾 Сохранить' : '➕ Создать'}</button>
+        <button type="submit" class="btn primary">${isEdit ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Создать`}</button>
       </div>
     </form>`, modal => {
     const typeSel = modal.querySelector('#accType');
     const creditField = modal.querySelector('#creditLimitField');
     typeSel.addEventListener('change', () => { creditField.style.display = typeSel.value === 'credit' ? '' : 'none'; });
+
+    const iconInput = modal.querySelector('[name=icon]');
+    modal.querySelector('#accIconPicker').addEventListener('click', e => {
+      const b = e.target.closest('[data-icon]');
+      if (!b) return;
+      iconInput.value = b.dataset.icon;
+      modal.querySelectorAll('#accIconPicker .avatar-opt').forEach(x => x.classList.toggle('on', x === b));
+    });
 
     modal.querySelector('.accent-picker').addEventListener('click', e => {
       const b = e.target.closest('[data-color]');
@@ -275,7 +298,7 @@ function openAccountForm(existing) {
       const name = String(f.get('name') || '').trim();
       if (!name) return;
       const data = {
-        name, icon: String(f.get('icon') || '💳').trim() || '💳', type: f.get('type'),
+        name, icon: String(f.get('icon') || 'card').trim() || 'card', type: f.get('type'),
         balance: Number(f.get('balance')) || 0, creditLimit: Number(f.get('creditLimit')) || 0,
         color: f.get('color') || CAT_COLORS[0],
       };
@@ -314,11 +337,11 @@ function renderBudgets() {
     const spent = isTotal ? financeMonth('expense', thisMonth) : financeCategoryMonth(b.category, thisMonth);
     const pct = b.limit ? clamp(Math.round((spent / b.limit) * 100), 0, 999) : 0;
     const barCls = pct >= 100 ? 'red-fill' : pct >= 80 ? 'gold' : 'green';
-    const icon = isTotal ? '💰' : catIcon(b.category, 'expense');
+    const bIcon = isTotal ? 'wallet' : catIcon(b.category, 'expense');
     return `<div class="card budget-card">
       <div class="flex-between">
-        <div class="budget-title">${icon} ${isTotal ? 'Все траты' : esc(b.category)}</div>
-        <button class="btn ghost small icon-only danger-text" data-budget-del="${b.id}" title="Удалить">✕</button>
+        <div class="budget-title">${catIconHtml(bIcon, 16)} ${isTotal ? 'Все траты' : esc(b.category)}</div>
+        <button class="btn ghost small icon-only danger-text" data-budget-del="${b.id}" title="Удалить">${icon('x',13)}</button>
       </div>
       ${barHtml(Math.min(pct, 100), barCls, true)}
       <div class="flex-between mt8" style="font-size:12px;">
@@ -338,8 +361,8 @@ function renderBudgets() {
 function openBudgetForm() {
   const usedCats = new Set(state.finance.budgets.map(b => b.category));
   const options = [
-    ...(usedCats.has('__total__') ? [] : [{ value: '__total__', label: '💰 Все траты' }]),
-    ...expenseCats().filter(c => !usedCats.has(c.name)).map(c => ({ value: c.name, label: `${c.icon} ${c.name}` })),
+    ...(usedCats.has('__total__') ? [] : [{ value: '__total__', label: 'Все траты' }]),
+    ...expenseCats().filter(c => !usedCats.has(c.name)).map(c => ({ value: c.name, label: c.name })),
   ];
   if (!options.length) { toast('На все категории лимиты уже заданы', 'gold'); return; }
 
@@ -353,7 +376,7 @@ function openBudgetForm() {
       </label>
       <div class="form-actions" style="grid-column:1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">➕ Добавить</button>
+        <button type="submit" class="btn primary">${icon('plus',15)} Добавить</button>
       </div>
     </form>`, modal => {
     modal.querySelector('[data-cancel]').addEventListener('click', closeModal);
@@ -396,23 +419,23 @@ function txRowHtml(t) {
   const acc = financeAccount(t.accountId);
   const isTransfer = t.type === 'transfer';
   const toAcc = isTransfer ? financeAccount(t.toAccountId) : null;
-  const icon = isTransfer ? '🔁' : t.type === 'income' ? '💵' : '💸';
+  const txIcon = isTransfer ? 'repeat' : t.type === 'income' ? 'banknote' : 'wallet';
   const title = isTransfer
     ? `${acc ? acc.name : '?'} → ${toAcc ? toAcc.name : '?'}`
-    : `${catIcon(t.category, t.type)} ${esc(t.category)}`;
+    : esc(t.category);
   return `<div class="row-item">
-      <span class="ic">${icon}</span>
+      <span class="ic-badge">${!isTransfer ? catIconHtml(catIcon(t.category, t.type), 17) : icon(txIcon, 17)}</span>
       <div class="main">
         <div class="title">${title}${t.note ? ` <span class="text-dim">— ${esc(t.note)}</span>` : ''}</div>
         <div class="meta">
           <span class="chip">${fmtDateHuman(t.date)}${t.time ? ' · ' + esc(t.time) : ''}</span>
-          ${!isTransfer && acc ? `<span class="chip">${acc.icon} ${esc(acc.name)}</span>` : ''}
+          ${!isTransfer && acc ? `<span class="chip">${catIconHtml(acc.icon, 12)} ${esc(acc.name)}</span>` : ''}
         </div>
       </div>
       <div class="tx-amount ${isTransfer ? '' : t.type === 'income' ? 'green' : 'red'}">${isTransfer ? '' : t.type === 'income' ? '+' : '−'}${fmtMoney(t.amount)}</div>
       <div class="actions">
-        <button class="btn ghost small icon-only" data-tx-edit="${t.id}" title="Изменить">✎</button>
-        <button class="btn ghost small icon-only danger-text" data-tx-del="${t.id}" title="Удалить">✕</button>
+        <button class="btn ghost small icon-only" data-tx-edit="${t.id}" title="Изменить">${icon('edit',14)}</button>
+        <button class="btn ghost small icon-only danger-text" data-tx-del="${t.id}" title="Удалить">${icon('x',13)}</button>
       </div>
     </div>`;
 }
@@ -428,18 +451,18 @@ function openTxForm(existing) {
     <form id="txForm" class="form-grid">
       <div class="field" style="grid-column:1/-1;">Тип
         <div class="seg" id="txType">
-          <button type="button" class="seg-btn ${initialType === 'expense' ? 'on' : ''}" data-type="expense">💸 Расход</button>
-          <button type="button" class="seg-btn ${initialType === 'income' ? 'on' : ''}" data-type="income">💵 Доход</button>
-          <button type="button" class="seg-btn ${initialType === 'transfer' ? 'on' : ''}" data-type="transfer">🔁 Перевод</button>
+          <button type="button" class="seg-btn ${initialType === 'expense' ? 'on' : ''}" data-type="expense">${icon('wallet',14)} Расход</button>
+          <button type="button" class="seg-btn ${initialType === 'income' ? 'on' : ''}" data-type="income">${icon('banknote',14)} Доход</button>
+          <button type="button" class="seg-btn ${initialType === 'transfer' ? 'on' : ''}" data-type="transfer">${icon('repeat',14)} Перевод</button>
         </div>
         <input type="hidden" name="type" value="${initialType}">
       </div>
 
       <label class="field" id="accField">Счёт
-        <select name="accountId">${accounts.map(a => `<option value="${a.id}" ${t.accountId === a.id ? 'selected' : ''}>${a.icon} ${esc(a.name)}</option>`).join('')}</select>
+        <select name="accountId">${accounts.map(a => `<option value="${a.id}" ${t.accountId === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
       </label>
       <label class="field" id="toAccField" style="display:none;">На счёт
-        <select name="toAccountId">${accounts.map(a => `<option value="${a.id}" ${t.toAccountId === a.id ? 'selected' : ''}>${a.icon} ${esc(a.name)}</option>`).join('')}</select>
+        <select name="toAccountId">${accounts.map(a => `<option value="${a.id}" ${t.toAccountId === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
       </label>
       <label class="field">Сумма (${esc(state.settings.currency)})
         <input type="number" name="amount" min="0" step="0.01" value="${t.amount || ''}" required>
@@ -453,10 +476,10 @@ function openTxForm(existing) {
         <datalist id="catList"></datalist>
         <div class="quick-cats" id="quickCats"></div>
         <div class="new-cat-row" id="newCatRow" style="display:none;">
-          <input type="text" id="newCatIcon" placeholder="🐱" maxlength="4">
+          <button type="button" class="btn ghost icon-only" id="newCatIcon" data-icon="sparkle" title="Сменить иконку — просто кликай">${icon('sparkle', 16)}</button>
           <input type="text" id="newCatName" placeholder="Название категории">
           <button type="button" class="btn small" id="newCatOk">Добавить</button>
-          <button type="button" class="btn ghost small" id="newCatCancel">✕</button>
+          <button type="button" class="btn ghost small" id="newCatCancel">${icon('x',13)}</button>
         </div>
       </label>
       <label class="field" style="grid-column:1/-1;">Заметка
@@ -464,7 +487,7 @@ function openTxForm(existing) {
       </label>
       <div class="form-actions" style="grid-column:1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${isEdit ? '💾 Сохранить' : '➕ Записать'}</button>
+        <button type="submit" class="btn primary">${isEdit ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Записать`}</button>
       </div>
     </form>`, modal => {
     const typeInput = modal.querySelector('[name=type]');
@@ -482,24 +505,32 @@ function openTxForm(existing) {
 
     function fillCats() {
       const cats = typeInput.value === 'income' ? incomeCats() : expenseCats();
-      quick.innerHTML = cats.map(c => `<button type="button" class="chip-btn" data-cat="${esc(c.name)}">${c.icon} ${esc(c.name)}</button>`).join('')
-        + `<button type="button" class="chip-btn" data-newcat="1">✏️ Своя…</button>`;
+      quick.innerHTML = cats.map(c => `<button type="button" class="chip-btn" data-cat="${esc(c.name)}">${catIconHtml(c.icon, 13)} ${esc(c.name)}</button>`).join('')
+        + `<button type="button" class="chip-btn" data-newcat="1">${icon('plus', 12)} Своя…</button>`;
       datalist.innerHTML = cats.map(c => `<option value="${esc(c.name)}">`).join('');
       quick.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { catInput.value = b.dataset.cat; }));
       const newBtn = quick.querySelector('[data-newcat]');
       if (newBtn) newBtn.addEventListener('click', () => {
         newCatRow.style.display = 'flex';
-        newCatIcon.value = '✨'; newCatName.value = ''; newCatName.focus();
+        newCatIcon.dataset.icon = 'sparkle'; newCatIcon.innerHTML = icon('sparkle', 16);
+        newCatName.value = ''; newCatName.focus();
       });
     }
+
+    newCatIcon.addEventListener('click', () => {
+      const i = CAT_ICON_CHOICES.indexOf(newCatIcon.dataset.icon);
+      const next = CAT_ICON_CHOICES[(i + 1) % CAT_ICON_CHOICES.length];
+      newCatIcon.dataset.icon = next;
+      newCatIcon.innerHTML = icon(next, 16);
+    });
 
     newCatRow.querySelector('#newCatCancel').addEventListener('click', () => { newCatRow.style.display = 'none'; });
     newCatRow.querySelector('#newCatOk').addEventListener('click', () => {
       const name = newCatName.value.trim();
       if (!name) { newCatName.focus(); return; }
-      const icon = newCatIcon.value.trim() || '✨';
+      const catIconKey = newCatIcon.dataset.icon || 'sparkle';
       const kind = typeInput.value === 'income' ? 'income' : 'expense';
-      state.finance.customCategories[kind].push({ name, icon });
+      state.finance.customCategories[kind].push({ name, icon: catIconKey });
       saveState();
       catInput.value = name;
       newCatRow.style.display = 'none';

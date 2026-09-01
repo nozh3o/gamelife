@@ -18,7 +18,7 @@ function renderJournal() {
 
     <div class="grid cols-3">
       <div class="card kpi"><div class="kpi-label">Всего записей</div><div class="big-number">${state.journal.length}</div></div>
-      <div class="card kpi"><div class="kpi-label">Дней подряд</div><div class="big-number gold-text">🔥 ${streak}</div></div>
+      <div class="card kpi"><div class="kpi-label">Дней подряд</div><div class="big-number gold-text">${icon('flame',22)} ${streak}</div></div>
       <div class="card kpi"><div class="kpi-label">Среднее настроение</div><div class="big-number">${avgMoodIcon()}</div></div>
     </div>
 
@@ -26,7 +26,7 @@ function renderJournal() {
       <div class="card-title">${todayEntry ? 'Запись за сегодня' : 'Как прошёл день?'} <small>${fmtDateHuman(today)}</small></div>
       <form id="journalForm">
         <div class="mood-row" id="moodRow">
-          ${MOODS.map(m => `<button type="button" class="mood-btn ${todayEntry && todayEntry.mood === m.id ? 'on' : ''}" data-mood="${m.id}" title="${m.label}">${m.icon}</button>`).join('')}
+          ${MOODS.map(m => `<button type="button" class="mood-btn ${todayEntry && todayEntry.mood === m.id ? 'on' : ''}" data-mood="${m.id}" title="${m.label}">${icon(m.icon, 22)}</button>`).join('')}
         </div>
         <input type="hidden" name="mood" value="${todayEntry ? todayEntry.mood : 3}">
 
@@ -40,7 +40,7 @@ function renderJournal() {
           <textarea name="text" rows="4" placeholder="Что получилось, что мешало, что попробую завтра…">${esc((todayEntry && todayEntry.text) || '')}</textarea>
         </label>
         <div class="form-actions mt8">
-          <button type="submit" class="btn primary">${todayEntry ? '💾 Обновить запись' : '➕ Сохранить'}</button>
+          <button type="submit" class="btn primary">${todayEntry ? `${icon('save',15)} Обновить запись` : `${icon('plus',15)} Сохранить`}</button>
         </div>
       </form>
     </div>
@@ -74,7 +74,7 @@ function renderJournal() {
       } else {
         state.journal.unshift({ id: uid(), date: today, mood, wins, gratitude, text, createdAt: nowISO() });
         addLog('📔', 'Сделана запись в журнале');
-        toast('📔 День записан', 'green');
+        toast('День записан', 'green');
         SFX.complete();
       }
     });
@@ -85,11 +85,11 @@ function renderJournal() {
     const m = MOODS.find(x => x.id === j.mood);
     return `<div class="card journal-entry">
       <div class="flex-between">
-        <div class="je-date">${m ? m.icon : ''} ${fmtDateHuman(j.date)}</div>
-        <button class="btn ghost small icon-only danger-text" data-j-del="${j.id}" title="Удалить">✕</button>
+        <div class="je-date">${m ? icon(m.icon, 15) : ''} ${fmtDateHuman(j.date)}</div>
+        <button class="btn ghost small icon-only danger-text" data-j-del="${j.id}" title="Удалить">${icon('x',13)}</button>
       </div>
       ${(j.wins || []).length ? `<ul class="je-wins">${j.wins.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
-      ${(j.gratitude || []).length ? `<ul class="je-wins je-gratitude">${j.gratitude.map(g => `<li>🙏 ${esc(g)}</li>`).join('')}</ul>` : ''}
+      ${(j.gratitude || []).length ? `<ul class="je-wins je-gratitude">${j.gratitude.map(g => `<li>${icon('heart',12)} ${esc(g)}</li>`).join('')}</ul>` : ''}
       ${j.text ? `<p class="je-text">${esc(j.text)}</p>` : ''}
     </div>`;
   }).join('') : `<div class="empty-hint">Записей пока нет</div>`;
@@ -119,5 +119,5 @@ function avgMoodIcon() {
   if (!moods.length) return '—';
   const avg = Math.round(moods.reduce((s, m) => s + m, 0) / moods.length);
   const m = MOODS.find(x => x.id === avg);
-  return m ? m.icon : '—';
+  return m ? icon(m.icon, 26) : '—';
 }

@@ -391,9 +391,9 @@ body::before {
 }
 .tag-filter, .quick-cats, .idea-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .quick-cats { margin-top: 6px; }
-.new-cat-row { display: flex; gap: 6px; margin-top: 8px; }
-.new-cat-row input:first-child { max-width: 54px; text-align: center; flex: none; }
-.new-cat-row input:nth-child(2) { flex: 1; min-width: 0; }
+.new-cat-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.new-cat-row #newCatIcon { flex: none; padding: 8px; border-radius: 11px; }
+.new-cat-row input { flex: 1; min-width: 0; }
 .new-cat-row input {
   padding: 8px 10px; border-radius: 11px; border: 1px solid var(--border-soft);
   background: var(--panel); color: var(--text); font-size: 12.5px; outline: none;
@@ -961,7 +961,7 @@ code {
   .btn.icon-only { padding: 9px 12px; }
   /* :hover не срабатывает по тапу — на телефоне кнопки редактирования/
      удаления строки задачи должны быть видны всегда, а не только по наведению */
-  .task-actions { opacity: 1; }
+  .task-actions, .account-actions { opacity: 1; }
   .cl-item { padding: 3px 0; }
   .cl-item input { width: 18px; height: 18px; }
   .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr 1fr; }

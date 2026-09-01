@@ -42,7 +42,7 @@ function renderStats() {
       </div>
     </div>
 
-    <div class="section-label">Активность <span class="chip ${activityStreak ? 'gold' : ''}">🔥 ${activityStreak} ${plural(activityStreak, 'день', 'дня', 'дней')} подряд</span></div>
+    <div class="section-label">Активность <span class="chip ${activityStreak ? 'gold' : ''}">${icon('flame',12)} ${activityStreak} ${plural(activityStreak, 'день', 'дня', 'дней')} подряд</span></div>
     <div class="card">
       <div class="card-title">Карта активности <small>последние 20 недель</small></div>
       ${activityHeatmapHtml(activityCounts, 20)}
@@ -62,7 +62,7 @@ function renderStats() {
 
     <div class="section-label">Питание</div>
     <div class="grid cols-3">
-      <div class="card kpi"><div class="kpi-label">Дней подряд с записями</div><div class="big-number gold-text">🔥 ${nutritionStreak()}</div></div>
+      <div class="card kpi"><div class="kpi-label">Дней подряд с записями</div><div class="big-number gold-text">${icon('flame',22)} ${nutritionStreak()}</div></div>
       <div class="card kpi"><div class="kpi-label">Записей всего</div><div class="big-number">${fmtNum(state.nutrition.entries.length)}</div></div>
       <div class="card kpi"><div class="kpi-label">Средние калории в день</div><div class="big-number">${fmtNum(avgKcal)}</div></div>
     </div>

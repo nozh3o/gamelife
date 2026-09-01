@@ -34,6 +34,48 @@ const ICONS = {
   heart: '<path d="M12 20.3S3.5 15 3.5 8.9C3.5 5.9 5.8 4 8.3 4c1.6 0 3 .9 3.7 2.2C12.7 4.9 14.1 4 15.7 4c2.5 0 4.8 1.9 4.8 4.9 0 6.1-8.5 11.4-8.5 11.4z"/>',
   music: '<circle cx="6.5" cy="18" r="2.3"/><circle cx="17" cy="16" r="2.3"/><path d="M8.8 18V5.5L19.3 3.5V13.7"/><path d="M8.8 8.5l10.5-2"/>',
   globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.4 2.3 3.7 5.3 3.7 8.5s-1.3 6.2-3.7 8.5c-2.4-2.3-3.7-5.3-3.7-8.5S9.6 5.8 12 3.5z"/>',
+  flame: '<path d="M12 2.5c2.5 3 4 5.7 4 8.5a4 4 0 0 1-8 0c0-1.2.4-2 1-2.8.2 1 .8 1.5 1.5 1.3-.7-2 .3-3.7 1.5-7z"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.3 2"/>',
+  alert: '<path d="M12 3.5l9.5 16.5H2.5z"/><path d="M12 9.5v5"/><circle cx="12" cy="17" r=".9" fill="currentColor" stroke="none"/>',
+  camera: '<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1-2h7l1 2h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.3"/>',
+  image: '<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M3.5 17l5-5 3.5 3.5 3-3 5.5 5.5"/>',
+  barcode: '<path d="M4 4.5v15" stroke-width="2.4"/><path d="M7 4.5v15"/><path d="M9.5 4.5v15" stroke-width="2.4"/><path d="M12.5 4.5v15"/><path d="M15 4.5v15" stroke-width="2.4"/><path d="M18 4.5v15"/><path d="M20.5 4.5v15" stroke-width="2.4"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  edit: '<path d="M15.5 3.5l5 5L8 21H3v-5z"/><path d="M13.5 5.5l5 5"/>',
+  x: '<path d="M5 5l14 14"/><path d="M19 5L5 19"/>',
+  checkmark: '<path d="M4.5 12.5l5 5 10-11"/>',
+  save: '<path d="M5 4.5h11l3.5 3.5v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M8 4.5v5h7v-5"/><path d="M8 20v-6h8v6"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.3"/><path d="M12 19.2v2.3"/><path d="M4.6 4.6l1.6 1.6"/><path d="M17.8 17.8l1.6 1.6"/><path d="M2.5 12h2.3"/><path d="M19.2 12h2.3"/><path d="M4.6 19.4l1.6-1.6"/><path d="M17.8 6.2l1.6-1.6"/>',
+  moon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
+  volume: '<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/>',
+  download: '<path d="M12 3.5v11.5"/><path d="M7 10.5l5 5 5-5"/><path d="M4.5 19.5h15"/>',
+  upload: '<path d="M12 19.5V8"/><path d="M7 13l5-5 5 5"/><path d="M4.5 19.5h15"/>',
+  trash: '<path d="M5 7h14"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M7 7l1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 19h2"/>',
+  cloud: '<path d="M7 18.5a4.5 4.5 0 0 1-.5-9 5.5 5.5 0 0 1 10.6-1.7A4 4 0 0 1 17 18.5z"/>',
+  hourglass: '<path d="M6 3.5h12"/><path d="M6 20.5h12"/><path d="M7 3.5v3.2c0 1.6 1.8 3 5 5.3 3.2-2.3 5-3.7 5-5.3V3.5"/><path d="M7 20.5v-3.2c0-1.6 1.8-3 5-5.3 3.2 2.3 5 3.7 5 5.3v3.2"/>',
+  pause: '<rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/>',
+  clipboard: '<rect x="5.5" y="4.5" width="13" height="17" rx="2"/><rect x="9" y="2.5" width="6" height="3.5" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 15h7"/>',
+  key: '<circle cx="8" cy="15" r="3.7"/><path d="M10.5 12.5L18 5"/><path d="M15.5 7.5l2.3 2.3"/><path d="M13 10l2 2"/>',
+  bot: '<rect x="5" y="8.5" width="14" height="10" rx="2.5"/><circle cx="9.3" cy="13.3" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.7" cy="13.3" r="1.1" fill="currentColor" stroke="none"/><path d="M12 5.5v3"/><circle cx="12" cy="4" r="1"/><path d="M2.5 12.5v3"/><path d="M21.5 12.5v3"/>',
+  flag: '<path d="M6 3v18"/><path d="M6 4h11l-2.5 4 2.5 4H6z"/>',
+  shirt: '<path d="M8 3.5L3.5 6.5 5.5 10l2-1v11.5h9V9l2 1 2-3.5L16 3.5c-.6 1.5-2.1 2.5-4 2.5s-3.4-1-4-2.5z"/>',
+  wifi: '<path d="M4 9a12 12 0 0 1 16 0"/><path d="M7 12.5a7.5 7.5 0 0 1 10 0"/><path d="M10 16a3 3 0 0 1 4 0"/><circle cx="12" cy="19" r=".9" fill="currentColor" stroke="none"/>',
+  box: '<path d="M3.5 8l8.5-4 8.5 4-8.5 4z"/><path d="M3.5 8v9l8.5 4 8.5-4V8"/><path d="M12 12v9"/>',
+  briefcase: '<rect x="3" y="7.5" width="18" height="12" rx="2"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5"/><path d="M3 12.5h18"/>',
+  gift: '<rect x="4" y="9.5" width="16" height="10.5" rx="1.5"/><path d="M4 13.5h16"/><path d="M12 9.5v10.5"/><path d="M12 9.5C10 6 6.5 6 6.5 8.7c0 1.3 2 1.3 5.5.8zM12 9.5c2-3.5 5.5-3.5 5.5-.8 0 1.3-2 1.3-5.5.8z"/>',
+  laptop: '<rect x="4.5" y="5" width="15" height="10" rx="1.5"/><path d="M2.5 19h19"/><path d="M9.5 19l1-2h3l1 2"/>',
+  tool: '<path d="M14.5 3.5a4.5 4.5 0 0 0-5.9 5l-6 6a1.8 1.8 0 0 0 2.5 2.5l6-6a4.5 4.5 0 0 0 5-5.9l-3 3-2-2z"/>',
+  bank: '<path d="M4 10h16"/><path d="M4 20h16"/><path d="M5.5 10v10"/><path d="M18.5 10v10"/><path d="M9.5 10v10"/><path d="M14.5 10v10"/><path d="M12 2.5l9 5.5H3z"/>',
+  banknote: '<rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M5.5 9v-.01"/><path d="M18.5 15v-.01"/>',
+  card: '<rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path d="M2.5 9.5h19"/><path d="M5.5 14.5h4"/>',
+  mood1: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5 17.5Q12 13 16.5 17.5"/>',
+  mood2: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8 16.5Q12 15 16 16.5"/>',
+  mood3: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8.5 16.2h7"/>',
+  mood4: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8 15Q12 18 16 15"/>',
+  mood5: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5 14.5Q12 19.5 16.5 14.5"/>',
 };
 function icon(name, size = 18, cls = '') {
   const p = ICONS[name];
@@ -149,7 +191,7 @@ function openModal(title, bodyHtml, onMount) {
       <div class="modal" role="dialog" aria-modal="true">
         <div class="modal-head">
           <h3>${esc(title)}</h3>
-          <button class="btn ghost icon-only" data-modal-close aria-label="Закрыть">✕</button>
+          <button class="btn ghost icon-only" data-modal-close aria-label="Закрыть">${icon('x',13)}</button>
         </div>
         <div class="modal-body">${bodyHtml}</div>
       </div>

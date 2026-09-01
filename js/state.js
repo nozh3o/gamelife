@@ -15,11 +15,11 @@ const DIFFICULTY = {
 
 /* ---- Настроение для журнала ------------------------------------------ */
 const MOODS = [
-  { id: 5, icon: '🤩', label: 'Отлично' },
-  { id: 4, icon: '🙂', label: 'Хорошо' },
-  { id: 3, icon: '😐', label: 'Нормально' },
-  { id: 2, icon: '😕', label: 'Так себе' },
-  { id: 1, icon: '😞', label: 'Плохо' },
+  { id: 5, icon: 'mood5', label: 'Отлично' },
+  { id: 4, icon: 'mood4', label: 'Хорошо' },
+  { id: 3, icon: 'mood3', label: 'Нормально' },
+  { id: 2, icon: 'mood2', label: 'Так себе' },
+  { id: 1, icon: 'mood1', label: 'Плохо' },
 ];
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -64,7 +64,7 @@ function defaultState() {
     workouts: [], // тренировки: {id, date, title, note, exercises: [{id, name, sets: [{weight, reps}]}]}
     finance: {
       accounts: [
-        { id: 'main', name: 'Основной счёт', icon: '💳', type: 'card', balance: 0, creditLimit: 0, color: '#7c5cff', createdAt: nowISO() },
+        { id: 'main', name: 'Основной счёт', icon: 'card', type: 'card', balance: 0, creditLimit: 0, color: '#7c5cff', createdAt: nowISO() },
       ],
       transactions: [],           // {id, date, time, amount, type: income|expense|transfer, category, note, accountId, toAccountId}
       customCategories: { income: [], expense: [] },  // {name, icon}
@@ -202,6 +202,6 @@ function saveState() {
     if (typeof onStateSaved === 'function') onStateSaved();
   } catch (e) {
     console.error('Не удалось сохранить состояние:', e);
-    if (typeof toast === 'function') toast('⚠️ Не удалось сохранить данные — хранилище браузера переполнено', 'red');
+    if (typeof toast === 'function') toast('Не удалось сохранить данные — хранилище браузера переполнено', 'red');
   }
 }

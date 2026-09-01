@@ -107,11 +107,11 @@ function renderNutrition() {
     </div>
 
     <div class="add-row">
-      <button class="btn primary" data-add-food="photo">📷 По фото</button>
-      <button class="btn" data-add-food="barcode">📦 Штрихкод</button>
-      <button class="btn" data-add-food="search">🔍 Найти по названию</button>
-      <button class="btn" data-add-food="dict">📖 Мои блюда</button>
-      <button class="btn" data-add-food="manual">✏️ Вручную</button>
+      <button class="btn primary" data-add-food="photo">${icon('camera',15)} По фото</button>
+      <button class="btn" data-add-food="barcode">${icon('barcode',15)} Штрихкод</button>
+      <button class="btn" data-add-food="search">${icon('search',15)} Найти по названию</button>
+      <button class="btn" data-add-food="dict">${icon('book',15)} Мои блюда</button>
+      <button class="btn" data-add-food="manual">${icon('edit',15)} Вручную</button>
     </div>
 
     <div class="section-label">Приёмы пищи <span class="chip">${entries.length}</span></div>
@@ -147,7 +147,7 @@ function renderMealList(entries) {
   const wrap = document.getElementById('mealList');
   wrap.innerHTML = entries.length ? entries.map(e => `
     <div class="row-item">
-      <span class="ic">${e.source === 'photo' ? '📷' : e.source === 'search' ? '🔍' : e.source === 'dict' ? '📖' : '🍽️'}</span>
+      <span class="ic-badge">${icon(e.source === 'photo' ? 'camera' : e.source === 'search' ? 'search' : e.source === 'dict' ? 'book' : 'utensils', 16)}</span>
       <div class="main">
         <div class="title">${esc(e.title)} <span class="text-dim">· ${fmtNum(e.grams)} г</span></div>
         <div class="meta">
@@ -160,8 +160,8 @@ function renderMealList(entries) {
         </div>
       </div>
       <div class="actions">
-        <button class="btn ghost small icon-only" data-meal-edit="${e.id}" title="Изменить">✎</button>
-        <button class="btn ghost small icon-only danger-text" data-meal-del="${e.id}" title="Удалить">✕</button>
+        <button class="btn ghost small icon-only" data-meal-edit="${e.id}" title="Изменить">${icon('edit',14)}</button>
+        <button class="btn ghost small icon-only danger-text" data-meal-del="${e.id}" title="Удалить">${icon('x',13)}</button>
       </div>
     </div>`).join('')
     : `<div class="empty-hint">За этот день ничего не записано</div>`;
@@ -230,7 +230,7 @@ function renderNutProfile() {
         <input type="number" name="carbs" value="${t.carbs}" min="0" ${auto ? 'disabled' : ''}>
       </label>
       <div class="form-actions" style="grid-column:1/-1;">
-        <button type="submit" class="btn primary">💾 Сохранить</button>
+        <button type="submit" class="btn primary">${icon('save',15)} Сохранить</button>
       </div>
     </form>
     <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:12px 0 0;">
@@ -317,7 +317,7 @@ function openMealForm(existing, prefill) {
       </div>` : ''}
       <div class="form-actions" style="grid-column:1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${isEdit ? '💾 Сохранить' : '➕ Добавить'}</button>
+        <button type="submit" class="btn primary">${isEdit ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Добавить`}</button>
       </div>
     </form>`, modal => {
     modal.querySelector('[data-cancel]').addEventListener('click', closeModal);
@@ -382,7 +382,7 @@ function addMealEntry(data) {
       const last = state.nutrition.entries[state.nutrition.entries.length - 1];
       last.bonusGiven = true;
       addLog('🎯', 'Дневная норма калорий выполнена');
-      toast('🎯 Уложился в норму сегодня', 'gold');
+      toast('Уложился в норму сегодня', 'gold');
       confetti(50);
     }
   }
@@ -402,10 +402,10 @@ function rememberDish(title, per100) {
 function openDictPicker() {
   const dict = [...state.nutrition.dictionary].sort((a, b) => (b.timesUsed || 0) - (a.timesUsed || 0));
   openModal('Мои блюда', dict.length ? `
-    <input type="search" id="dictSearch" class="search-input wfull" placeholder="🔎 Фильтр по названию…" style="max-width:none;margin-bottom:12px;">
+    <input type="search" id="dictSearch" class="search-input wfull" placeholder="Фильтр по названию…" style="max-width:none;margin-bottom:12px;">
     <div class="list" id="dictList">
       ${dict.map(d => `<div class="row-item dict-row" data-dict="${d.id}">
-        <span class="ic">📖</span>
+        <span class="ic-badge">${icon('book',18)}</span>
         <div class="main">
           <div class="title">${esc(d.title)}</div>
           <div class="meta"><span class="chip gold">${Math.round(d.per100.kcal)} ккал/100 г</span>
@@ -413,7 +413,7 @@ function openDictPicker() {
             <span class="chip">Ж ${d.per100.fat.toFixed(1)}</span>
             <span class="chip">У ${d.per100.carbs.toFixed(1)}</span></div>
         </div>
-        <div class="actions"><button class="btn ghost small icon-only danger-text" data-dict-del="${d.id}" title="Убрать">✕</button></div>
+        <div class="actions"><button class="btn ghost small icon-only danger-text" data-dict-del="${d.id}" title="Убрать">${icon('x',13)}</button></div>
       </div>`).join('')}
     </div>`
     : `<div class="empty-hint">Словарь пуст. Добавь блюдо вручную или из поиска и поставь галочку «Запомнить» — потом оно будет добавляться в один тап.</div>`,
@@ -479,7 +479,7 @@ function openFoodSearch() {
       <div class="section-label" style="margin:14px 0 8px;">${esc(heading)}</div>
       <div class="list">${items.map((p, i) => `
         <div class="row-item dict-row" data-pick="${source}:${offset + i}">
-          <span class="ic">${source === 'dict' ? '📖' : source === 'search' ? '🌐' : '📚'}</span>
+          <span class="ic-badge">${icon(source === 'dict' ? 'book' : source === 'search' ? 'globe' : 'book', 18)}</span>
           <div class="main">
             <div class="title">${esc(p.title)}</div>
             <div class="meta"><span class="chip gold">${Math.round(p.per100.kcal)} ккал/100 г</span>
@@ -619,7 +619,7 @@ function openBarcodeScanner() {
       оценки по фотографии. Бесплатно и без ключей.
     </p>
     ${barcodeSupported()
-      ? `<button class="btn primary wfull" id="startScan">📷 Навести камеру</button>
+      ? `<button class="btn primary wfull" id="startScan">${icon('camera',15)} Навести камеру</button>
          <video id="scanVideo" playsinline muted style="display:none;"></video>`
       : `<div class="mini-box" style="margin-top:0;">Этот браузер не умеет распознавать штрихкод камерой — введи цифры вручную.</div>`}
     ${manualForm}`, modal => {
@@ -735,11 +735,11 @@ function openPhotoAnalyzer() {
     </p>
     <div style="display:flex;gap:8px;">
       <label class="btn primary" style="cursor:pointer;justify-content:center;flex:1;">
-        📷 Камера
+        ${icon('camera',15)} Камера
         <input type="file" id="foodPhotoCamera" accept="image/*" capture="environment" style="display:none;">
       </label>
       <label class="btn" style="cursor:pointer;justify-content:center;flex:1;">
-        🖼️ Из галереи
+        ${icon('image',15)} Из галереи
         <input type="file" id="foodPhotoGallery" accept="image/*" style="display:none;">
       </label>
     </div>

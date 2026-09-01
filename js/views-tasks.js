@@ -32,7 +32,7 @@ function renderTasks() {
         <p class="page-sub">${TASK_HINTS[type]}</p>
       </div>
       <div class="head-actions">
-        <button class="btn primary" id="addTaskBtn">＋ Добавить ${TASK_ADD_LABEL[type]}</button>
+        <button class="btn primary" id="addTaskBtn">${icon('plus',15)} Добавить ${TASK_ADD_LABEL[type]}</button>
       </div>
     </div>
 
@@ -120,12 +120,12 @@ function habitCardHtml(h) {
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
-      <button class="btn ghost small icon-only" data-edit="habit:${h.id}" title="Изменить">✎</button>
-      <button class="btn ghost small icon-only danger-text" data-del="habit:${h.id}" title="Удалить">✕</button>
+      <button class="btn ghost small icon-only" data-edit="habit:${h.id}" title="Изменить">${icon('edit',14)}</button>
+      <button class="btn ghost small icon-only danger-text" data-del="habit:${h.id}" title="Удалить">${icon('x',13)}</button>
     </div>
     <div class="task-btns">
-      ${h.positive ? `<button class="pm-btn up" data-habit-up="${h.id}" title="Сделал">＋</button>` : ''}
-      ${h.negative ? `<button class="pm-btn down" data-habit-down="${h.id}" title="Сорвался">−</button>` : ''}
+      ${h.positive ? `<button class="pm-btn up" data-habit-up="${h.id}" title="Сделал">${icon('plus',16)}</button>` : ''}
+      ${h.negative ? `<button class="pm-btn down" data-habit-down="${h.id}" title="Сорвался">${icon('minus',16)}</button>` : ''}
     </div>
   </div>`;
 }
@@ -135,7 +135,7 @@ function dailyCardHtml(d) {
   const done = isDailyDoneToday(d);
   const checklistDone = (d.checklist || []).filter(c => c.done).length;
   const subParts = [];
-  if (d.streak > 0) subParts.push(`<span class="fire">🔥 ${d.streak}</span>`);
+  if (d.streak > 0) subParts.push(`<span class="fire">${icon('flame',12)} ${d.streak}</span>`);
   if ((d.checklist || []).length) subParts.push(`<span>${checklistDone}/${d.checklist.length}</span>`);
   if (!due) subParts.push(`<span>сегодня не по плану</span>`);
   if ((d.tags || []).length) subParts.push(`<span>${d.tags.map(t => '#' + esc(t)).join(' ')}</span>`);
@@ -149,10 +149,10 @@ function dailyCardHtml(d) {
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
-      <button class="btn ghost small icon-only" data-edit="daily:${d.id}" title="Изменить">✎</button>
-      <button class="btn ghost small icon-only danger-text" data-del="daily:${d.id}" title="Удалить">✕</button>
+      <button class="btn ghost small icon-only" data-edit="daily:${d.id}" title="Изменить">${icon('edit',14)}</button>
+      <button class="btn ghost small icon-only danger-text" data-del="daily:${d.id}" title="Удалить">${icon('x',13)}</button>
     </div>
-    <button class="check-btn ${done ? 'checked' : ''}" data-daily="${d.id}" title="${done ? 'Отменить' : 'Выполнить'}">${done ? '✓' : ''}</button>
+    <button class="check-btn ${done ? 'checked' : ''}" data-daily="${d.id}" title="${done ? 'Отменить' : 'Выполнить'}">${done ? icon('checkmark',12) : ''}</button>
   </div>`;
 }
 
@@ -174,10 +174,10 @@ function todoCardHtml(t) {
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
-      <button class="btn ghost small icon-only" data-edit="todo:${t.id}" title="Изменить">✎</button>
-      <button class="btn ghost small icon-only danger-text" data-del="todo:${t.id}" title="Удалить">✕</button>
+      <button class="btn ghost small icon-only" data-edit="todo:${t.id}" title="Изменить">${icon('edit',14)}</button>
+      <button class="btn ghost small icon-only danger-text" data-del="todo:${t.id}" title="Удалить">${icon('x',13)}</button>
     </div>
-    <button class="check-btn ${t.done ? 'checked' : ''}" data-todo="${t.id}" title="${t.done ? 'Вернуть в работу' : 'Выполнить'}">${t.done ? '✓' : ''}</button>
+    <button class="check-btn ${t.done ? 'checked' : ''}" data-todo="${t.id}" title="${t.done ? 'Вернуть в работу' : 'Выполнить'}">${t.done ? icon('checkmark',12) : ''}</button>
   </div>`;
 }
 
@@ -237,7 +237,7 @@ function toggleDaily(id) {
       SFX.complete();
       addLog('📅', `Ежедневка выполнена: ${d.title} (стрик ${d.streak})`);
       if (d.streak > 0 && d.streak % 7 === 0) {
-        toast(`🔥 ${d.title}: ${d.streak} ${plural(d.streak, 'день', 'дня', 'дней')} подряд!`, 'gold');
+        toast(`${d.title}: ${d.streak} ${plural(d.streak, 'день', 'дня', 'дней')} подряд!`, 'gold');
         confetti(50);
       }
     } else {
@@ -297,8 +297,8 @@ function openTaskForm(type, id) {
       ${type === 'habit' ? `
       <div class="field" style="grid-column: 1/-1;">Тип привычки
         <div class="check-row">
-          <label class="switch"><input type="checkbox" name="positive" ${t.positive !== false ? 'checked' : ''}><span>➕ Есть кнопка «сделал»</span></label>
-          <label class="switch"><input type="checkbox" name="negative" ${t.negative ? 'checked' : ''}><span>➖ Есть кнопка «сорвался»</span></label>
+          <label class="switch"><input type="checkbox" name="positive" ${t.positive !== false ? 'checked' : ''}><span>${icon('plus',14)} Есть кнопка «сделал»</span></label>
+          <label class="switch"><input type="checkbox" name="negative" ${t.negative ? 'checked' : ''}><span>${icon('minus',14)} Есть кнопка «сорвался»</span></label>
         </div>
       </div>` : ''}
 
@@ -312,7 +312,7 @@ function openTaskForm(type, id) {
 
       <div class="form-actions" style="grid-column: 1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${existing ? '💾 Сохранить' : '➕ Добавить'}</button>
+        <button type="submit" class="btn primary">${existing ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Добавить`}</button>
       </div>
     </form>`;
 

@@ -28,7 +28,7 @@ function renderGoals() {
         <h1 class="page-title">Цели</h1>
         <p class="page-sub">Большие задачи на месяцы. Числовые копят прогресс, пошаговые закрываются этапами.</p>
       </div>
-      <div class="head-actions"><button class="btn primary" id="addGoal">＋ Новая цель</button></div>
+      <div class="head-actions"><button class="btn primary" id="addGoal">${icon('plus',15)} Новая цель</button></div>
     </div>
 
     <div class="grid cols-3">
@@ -62,10 +62,10 @@ function goalCardHtml(g) {
   const overdue = dl !== null && dl < 0 && !g.done;
   return `<div class="card goal-card ${g.done ? 'is-done' : ''} ${overdue ? 'overdue' : ''}">
     <div class="goal-head">
-      <div class="goal-title">${g.done ? '🏁' : '🎯'} ${esc(g.title)}</div>
+      <div class="goal-title">${icon(g.done ? 'flag' : 'target', 15)} ${esc(g.title)}</div>
       <div class="goal-actions">
-        <button class="btn ghost small icon-only" data-goal-edit="${g.id}" title="Изменить">✎</button>
-        <button class="btn ghost small icon-only danger-text" data-goal-del="${g.id}" title="Удалить">✕</button>
+        <button class="btn ghost small icon-only" data-goal-edit="${g.id}" title="Изменить">${icon('edit',14)}</button>
+        <button class="btn ghost small icon-only danger-text" data-goal-del="${g.id}" title="Удалить">${icon('x',13)}</button>
       </div>
     </div>
     ${g.note ? `<p class="goal-note">${esc(g.note)}</p>` : ''}
@@ -77,7 +77,7 @@ function goalCardHtml(g) {
 
     <div class="task-meta mt8">
       ${g.moneyReward ? `<span class="chip green">+${fmtMoney(g.moneyReward)}</span>` : ''}
-      ${g.deadline ? `<span class="chip ${overdue ? 'red' : ''}">${overdue ? '⏰ просрочено ' : '📆 '}${fmtDateHuman(g.deadline)}${dl !== null && dl >= 0 ? ` · ${dl} ${plural(dl, 'день', 'дня', 'дней')}` : ''}</span>` : ''}
+      ${g.deadline ? `<span class="chip ${overdue ? 'red' : ''}">${icon(overdue ? 'alert' : 'calendar', 12)} ${overdue ? 'просрочено ' : ''}${fmtDateHuman(g.deadline)}${dl !== null && dl >= 0 ? ` · ${dl} ${plural(dl, 'день', 'дня', 'дней')}` : ''}</span>` : ''}
     </div>
 
     ${g.kind === 'numeric' ? `
@@ -85,7 +85,7 @@ function goalCardHtml(g) {
         <div class="text-dim" style="font-size:13px;">${fmtNum(g.current)} / ${fmtNum(g.target)} ${esc(g.unit || '')}</div>
         ${!g.done ? `<div class="goal-add-row">
           <input type="number" step="any" data-goal-input="${g.id}" placeholder="сколько добавить">
-          <button class="btn small" data-goal-add="${g.id}">＋</button>
+          <button class="btn small" data-goal-add="${g.id}">${icon('plus',13)}</button>
         </div>` : ''}
       </div>` : ''}
 
@@ -138,7 +138,7 @@ function completeGoal(g) {
   g.doneAt = nowISO();
   if (g.moneyReward) addTransaction(g.moneyReward, 'income', 'Цель', g.title, todayStr(), true);
   addLog('🏁', `Цель достигнута: ${g.title}`);
-  toast(`🏁 Цель достигнута: ${g.title}!`, 'gold');
+  toast(`Цель достигнута: ${g.title}!`, 'gold');
   confetti(110);
   SFX.achieve();
 }
@@ -207,7 +207,7 @@ function openGoalForm(id) {
       </label>
       <div class="form-actions" style="grid-column: 1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${existing ? '💾 Сохранить' : '➕ Создать цель'}</button>
+        <button type="submit" class="btn primary">${existing ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Создать цель`}</button>
       </div>
     </form>`;
 

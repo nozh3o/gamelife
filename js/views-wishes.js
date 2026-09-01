@@ -14,7 +14,7 @@ function renderWishes() {
         <p class="page-sub">Запиши, чего хочешь, добавь картинку для настроения — и отметь, когда сбудется.</p>
       </div>
       <div class="head-actions">
-        <button class="btn primary" id="addWish">＋ Новое желание</button>
+        <button class="btn primary" id="addWish">${icon('plus',15)} Новое желание</button>
       </div>
     </div>
 
@@ -27,7 +27,7 @@ function renderWishes() {
     <div class="section-label">В процессе</div>
     <div class="wish-grid" id="wishesActive"></div>
 
-    ${done.length ? `<div class="section-label">Сбылось 🎉</div>
+    ${done.length ? `<div class="section-label">Сбылось ${icon('sparkle',12)}</div>
     <div class="wish-grid" id="wishesDone"></div>` : ''}`;
 
   document.getElementById('addWish').addEventListener('click', () => openWishForm());
@@ -50,14 +50,14 @@ function wishCardHtml(w) {
     <div class="wish-body">
       <div class="wish-title">${esc(w.title)}</div>
       ${w.note ? `<div class="wish-note">${esc(w.note)}</div>` : ''}
-      ${w.done ? `<div class="chip gold mt8">🎉 Сбылось ${fmtDateHuman(dateStr(new Date(w.doneAt)))}</div>` : ''}
+      ${w.done ? `<div class="chip gold mt8">${icon('sparkle',12)} Сбылось ${fmtDateHuman(dateStr(new Date(w.doneAt)))}</div>` : ''}
     </div>
     <div class="wish-actions">
       ${!w.done
-        ? `<button class="btn success small wfull" data-wish-done="${w.id}">🎉 Сбылось!</button>`
+        ? `<button class="btn success small wfull" data-wish-done="${w.id}">${icon('sparkle',14)} Сбылось!</button>`
         : `<button class="btn ghost small wfull" data-wish-undone="${w.id}">Вернуть в процесс</button>`}
-      <button class="btn ghost small icon-only" data-wish-edit="${w.id}" title="Изменить">✎</button>
-      <button class="btn ghost small icon-only danger-text" data-wish-del="${w.id}" title="Удалить">✕</button>
+      <button class="btn ghost small icon-only" data-wish-edit="${w.id}" title="Изменить">${icon('edit',14)}</button>
+      <button class="btn ghost small icon-only danger-text" data-wish-del="${w.id}" title="Удалить">${icon('x',13)}</button>
     </div>
   </div>`;
 }
@@ -70,7 +70,7 @@ function bindWishHandlers() {
       if (!w) return;
       w.done = true; w.doneAt = nowISO();
       addLog('🌠', `Желание сбылось: ${w.title}`);
-      toast(`🎉 Сбылось: ${w.title}!`, 'gold');
+      toast(`Сбылось: ${w.title}!`, 'gold');
       confetti(130);
       SFX.achieve();
     });
@@ -124,7 +124,7 @@ function openWishForm(id) {
       ${w.image ? `<div style="grid-column:1/-1;"><img src="${w.image}" class="photo-preview" alt=""><label class="switch mt8"><input type="checkbox" name="removeImage"><span>Убрать текущую картинку</span></label></div>` : ''}
       <div class="form-actions" style="grid-column: 1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${existing ? '💾 Сохранить' : '➕ Загадать'}</button>
+        <button type="submit" class="btn primary">${existing ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Загадать`}</button>
       </div>
     </form>`;
 
@@ -156,7 +156,7 @@ function openWishForm(id) {
         } catch (err) {
           toast('Не получилось прочитать картинку: ' + err.message, 'red');
           submitBtn.disabled = false;
-          submitBtn.textContent = existing ? '💾 Сохранить' : '➕ Загадать';
+          submitBtn.innerHTML = existing ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Загадать`;
           return;
         }
       }

@@ -16,14 +16,14 @@ function renderWorkouts() {
         <p class="page-sub">Упражнения и подходы — вес и повторы, прогресс виден по каждому упражнению отдельно.</p>
       </div>
       <div class="head-actions">
-        <button class="btn primary" id="addWorkout">＋ Тренировка</button>
+        <button class="btn primary" id="addWorkout">${icon('plus',15)} Тренировка</button>
       </div>
     </div>
 
     <div class="grid cols-3">
       <div class="card kpi"><div class="kpi-label">Всего тренировок</div><div class="big-number">${state.workouts.length}</div></div>
       <div class="card kpi"><div class="kpi-label">На этой неделе</div><div class="big-number green">${thisWeek}</div></div>
-      <div class="card kpi"><div class="kpi-label">Дней подряд</div><div class="big-number gold-text">🔥 ${streak}</div></div>
+      <div class="card kpi"><div class="kpi-label">Дней подряд</div><div class="big-number gold-text">${icon('flame',22)} ${streak}</div></div>
     </div>
 
     ${exerciseProgressHtml()}
@@ -95,8 +95,8 @@ function workoutCardHtml(w) {
         <div class="text-dim" style="font-size:12px;margin-top:2px;">${fmtDateHuman(w.date)}${volume ? ` · объём ${fmtNum(volume)} кг` : ''}</div>
       </div>
       <div class="goal-actions">
-        <button class="btn ghost small icon-only" data-workout-edit="${w.id}" title="Изменить">✎</button>
-        <button class="btn ghost small icon-only danger-text" data-workout-del="${w.id}" title="Удалить">✕</button>
+        <button class="btn ghost small icon-only" data-workout-edit="${w.id}" title="Изменить">${icon('edit',14)}</button>
+        <button class="btn ghost small icon-only danger-text" data-workout-del="${w.id}" title="Удалить">${icon('x',13)}</button>
       </div>
     </div>
     ${w.note ? `<p class="workout-note">${esc(w.note)}</p>` : ''}
@@ -149,7 +149,7 @@ function setRowHtml(s) {
       <select class="wheel-select reps-select">${REP_OPTIONS.map(v => `<option value="${v}"${v === r ? ' selected' : ''}>${v}</option>`).join('')}</select>
       <span class="set-unit">повт</span>
     </div>
-    <button type="button" class="btn ghost small icon-only" data-remove-set title="Убрать подход">✕</button>
+    <button type="button" class="btn ghost small icon-only" data-remove-set title="Убрать подход">${icon('x',13)}</button>
   </div>`;
 }
 
@@ -158,10 +158,10 @@ function exerciseBlockHtml(ex) {
   return `<div class="ex-editor-item">
     <div class="ex-editor-head">
       <input type="text" class="ex-name-input" placeholder="Название упражнения" value="${esc(ex ? ex.name : '')}">
-      <button type="button" class="btn ghost small icon-only" data-remove-ex title="Удалить упражнение">✕</button>
+      <button type="button" class="btn ghost small icon-only" data-remove-ex title="Удалить упражнение">${icon('x',13)}</button>
     </div>
     <div class="ex-sets">${sets.map(setRowHtml).join('')}</div>
-    <button type="button" class="btn ghost small" data-add-set>+ Подход</button>
+    <button type="button" class="btn ghost small" data-add-set>${icon('plus',13)} Подход</button>
   </div>`;
 }
 
@@ -207,7 +207,7 @@ function openWorkoutForm(id) {
       <div style="grid-column: 1/-1;">
         <span class="field-label">Упражнения</span>
         <div class="ex-editor" id="exEditor">${exercises.map(exerciseBlockHtml).join('')}</div>
-        <button type="button" class="btn ghost small mt8" id="addExerciseBtn">+ Упражнение</button>
+        <button type="button" class="btn ghost small mt8" id="addExerciseBtn">${icon('plus',13)} Упражнение</button>
       </div>
 
       <label class="field" style="grid-column: 1/-1;">Заметка (необязательно)
@@ -216,7 +216,7 @@ function openWorkoutForm(id) {
 
       <div class="form-actions" style="grid-column: 1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>
-        <button type="submit" class="btn primary">${existing ? '💾 Сохранить' : '➕ Добавить'}</button>
+        <button type="submit" class="btn primary">${existing ? `${icon('save',15)} Сохранить` : `${icon('plus',15)} Добавить`}</button>
       </div>
     </form>`;
 

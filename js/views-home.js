@@ -24,7 +24,7 @@ function renderHome() {
   content().innerHTML = `
     <div class="page-head">
       <div>
-        <h1 class="page-title">${greeting()} 👋</h1>
+        <h1 class="page-title">${greeting()}</h1>
         <p class="page-sub">${esc(new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
       </div>
     </div>
@@ -57,10 +57,10 @@ function renderHome() {
     ? dueToday.map(d => {
         const done = isDailyDoneToday(d);
         return `<div class="row-item compact ${done ? 'done' : ''}">
-          <button class="check-btn small ${done ? 'checked' : ''}" data-home-daily="${d.id}">${done ? '✓' : ''}</button>
+          <button class="check-btn small ${done ? 'checked' : ''}" data-home-daily="${d.id}">${done ? icon('checkmark',11) : ''}</button>
           <div class="main">
             <div class="title ${done ? 'strike' : ''}">${esc(d.title)}</div>
-            <div class="meta">${diffChip(d.difficulty)}<span class="chip ${d.streak ? 'gold' : ''}">🔥 ${d.streak}</span></div>
+            <div class="meta">${diffChip(d.difficulty)}<span class="chip ${d.streak ? 'gold' : ''}">${icon('flame',12)} ${d.streak}</span></div>
           </div>
         </div>`;
       }).join('')
@@ -73,7 +73,7 @@ function renderHome() {
           <button class="check-btn small" data-home-todo="${t.id}"></button>
           <div class="main">
             <div class="title">${esc(t.title)}</div>
-            <div class="meta">${diffChip(t.difficulty)}${t.due ? `<span class="chip ${late ? 'red' : ''}">${late ? '⏰ ' : '📆 '}${fmtDateHuman(t.due)}</span>` : ''}</div>
+            <div class="meta">${diffChip(t.difficulty)}${t.due ? `<span class="chip ${late ? 'red' : ''}">${icon(late ? 'alert' : 'calendar', 12)} ${fmtDateHuman(t.due)}</span>` : ''}</div>
           </div>
         </div>`;
       }).join('')
@@ -102,7 +102,7 @@ let bangkokTimer = null;
 
 function bangkokCountdownHtml() {
   return `<div class="card countdown-card" id="bangkokCountdown">
-    <div class="card-title">✈️ До Бангкока <small>вылет 30 ноября</small></div>
+    <div class="card-title">${icon('plane',16)} До Бангкока <small>вылет 30 ноября</small></div>
     <div class="countdown-grid">
       <div class="countdown-cell"><div class="countdown-num" id="cdDays">0</div><div class="countdown-label">дней</div></div>
       <div class="countdown-cell"><div class="countdown-num" id="cdHours">00</div><div class="countdown-label">часов</div></div>
@@ -119,7 +119,7 @@ function tickBangkokCountdown() {
 
   const diff = BANGKOK_DEPARTURE - new Date();
   if (diff <= 0) {
-    el.querySelector('.countdown-grid').innerHTML = `<div class="countdown-arrived">🎉 Уже летим (или улетели)!</div>`;
+    el.querySelector('.countdown-grid').innerHTML = `<div class="countdown-arrived">${icon('sparkle',18)} Уже летим (или улетели)!</div>`;
     clearInterval(bangkokTimer); bangkokTimer = null;
     return;
   }

@@ -41,7 +41,7 @@ function applyAgentItem(item) {
       if (acc) accountId = acc.id;
     }
     addTransaction(amount, type, p.category, p.note, p.date, false, accountId);
-    toast(`🤖 Клод добавил ${type === 'income' ? 'доход' : 'расход'}: ${fmtMoney(amount)}${p.category ? ' · ' + p.category : ''}`, 'gold');
+    toast(`Клод добавил ${type === 'income' ? 'доход' : 'расход'}: ${fmtMoney(amount)}${p.category ? ' · ' + p.category : ''}`, 'gold');
   } else if (item.kind === 'workout') {
     const exercises = (p.exercises || []).map(ex => ({
       id: uid(),
@@ -55,7 +55,7 @@ function applyAgentItem(item) {
       exercises, createdAt: nowISO(),
     });
     addLog('🏋️', `Тренировка записана Клодом: ${title}`);
-    toast(`🤖 Клод добавил тренировку: ${title}`, 'gold');
+    toast(`Клод добавил тренировку: ${title}`, 'gold');
   } else if (item.kind === 'meal') {
     const title = String(p.title || 'Приём пищи').trim() || 'Приём пищи';
     addMealEntry({
@@ -63,7 +63,7 @@ function applyAgentItem(item) {
       kcal: Number(p.kcal) || 0, protein: Number(p.protein) || 0,
       fat: Number(p.fat) || 0, carbs: Number(p.carbs) || 0, source: 'agent',
     });
-    toast(`🤖 Клод добавил приём пищи: ${title}`, 'gold');
+    toast(`Клод добавил приём пищи: ${title}`, 'gold');
   }
 }
 

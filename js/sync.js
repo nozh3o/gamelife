@@ -205,7 +205,7 @@ async function syncNow(manual = false) {
     if (!remote) {
       const row = await pushRemote();
       markSynced(row);
-      if (manual) toast('☁️ Прогресс выгружен в облако', 'green');
+      if (manual) toast('Прогресс выгружен в облако', 'green');
       return;
     }
 
@@ -240,13 +240,13 @@ async function syncNow(manual = false) {
       if (localEmpty && !remoteEmpty) {
         applyRemoteState(remote.data);
         markSynced({ updated_at: remote.updated_at });
-        toast('☁️ Это устройство было пустым — подтянул настоящий прогресс из облака', 'gold');
+        toast('Это устройство было пустым — подтянул настоящий прогресс из облака', 'gold');
         return;
       }
       if (remoteEmpty && !localEmpty) {
         const row = await pushRemote();
         markSynced(row);
-        toast('⚠️ В облаке оказалось пусто — выгрузил туда прогресс с этого устройства', 'red');
+        toast('В облаке оказалось пусто — выгрузил туда прогресс с этого устройства', 'red');
         return;
       }
     }
@@ -259,13 +259,13 @@ async function syncNow(manual = false) {
     if (remoteChanged && !localChanged) {
       applyRemoteState(remote.data);
       markSynced({ updated_at: remote.updated_at });
-      toast(`☁️ Подтянут прогресс с устройства «${remote.device || 'другое'}»`, 'green');
+      toast(`Подтянут прогресс с устройства «${remote.device || 'другое'}»`, 'green');
       return;
     }
     if (localChanged && !remoteChanged) {
       const row = await pushRemote();
       markSynced(row);
-      if (manual) toast('☁️ Изменения выгружены', 'green');
+      if (manual) toast('Изменения выгружены', 'green');
       return;
     }
 
@@ -274,11 +274,11 @@ async function syncNow(manual = false) {
     if (remoteAt > localAt) {
       applyRemoteState(remote.data);
       markSynced({ updated_at: remote.updated_at });
-      toast(`☁️ Подтянута более новая версия с «${remote.device || 'другого устройства'}»`, 'green');
+      toast(`Подтянута более новая версия с «${remote.device || 'другого устройства'}»`, 'green');
     } else {
       const row = await pushRemote();
       markSynced(row);
-      toast('☁️ Оставлена версия с этого устройства (она новее)', 'green');
+      toast('Оставлена версия с этого устройства (она новее)', 'green');
     }
   } catch (e) {
     console.warn('Синхронизация не удалась:', e);
@@ -336,13 +336,13 @@ function renderSyncBadge() {
   if (!el) return;
   if (!syncSignedIn()) { el.innerHTML = ''; return; }
 
-  const icons = { busy: '⏳', ok: '☁️', error: '⚠️', off: '⏸️', idle: '☁️' };
+  const statusIcons = { busy: 'hourglass', ok: 'cloud', error: 'alert', off: 'pause', idle: 'cloud' };
   const when = syncCfg.lastSyncAt ? fmtRelTime(syncCfg.lastSyncAt) : 'ещё не было';
   const text = syncStatus.kind === 'busy' ? 'Синхронизация…'
              : syncStatus.kind === 'error' ? 'Ошибка синхронизации'
              : `Синхронизировано ${when}`;
   el.innerHTML = `<button class="sync-badge ${syncStatus.kind}" id="syncBadgeBtn" title="Синхронизировать сейчас">
-      <span>${icons[syncStatus.kind] || '☁️'}</span><span class="sync-badge-text">${esc(text)}</span>
+      <span>${icon(statusIcons[syncStatus.kind] || 'cloud', 15)}</span><span class="sync-badge-text">${esc(text)}</span>
     </button>`;
   el.querySelector('#syncBadgeBtn').addEventListener('click', () => syncNow(true));
 }
@@ -479,7 +479,7 @@ function syncSetupHtml() {
     </ol>
 
     <div class="sql-box">
-      <button class="btn small" id="copySql">📋 Скопировать код</button>
+      <button class="btn small" id="copySql">${icon('clipboard',15)} Скопировать код</button>
       <pre id="sqlText">${esc(SYNC_SQL)}</pre>
     </div>
 
@@ -538,7 +538,7 @@ function syncActiveHtml() {
       предыдущая всё равно на секунду сохраняется в резервную копию браузера на случай сомнений.
     </p>
     <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap;margin-top:14px;">
-      <button class="btn primary" id="syncNowBtn">☁️ Синхронизировать сейчас</button>
+      <button class="btn primary" id="syncNowBtn">${icon('cloud',15)} Синхронизировать сейчас</button>
       <button class="btn ghost" id="syncOutBtn">Выйти на этом устройстве</button>
     </div>
 
@@ -575,7 +575,7 @@ function syncActiveHtml() {
         <input type="text" name="label" placeholder="Например: Клод на телефоне" maxlength="40">
       </label>
       <div class="form-actions" style="grid-column:1/-1;justify-content:flex-start;">
-        <button type="submit" class="btn">🔑 Создать личную ссылку</button>
+        <button type="submit" class="btn">${icon('key',15)} Создать личную ссылку</button>
       </div>
     </form>`;
 }
@@ -620,7 +620,7 @@ function agentTokenRowHtml(t) {
   const when = t.last_used_at ? `использован ${fmtRelTime(Date.parse(t.last_used_at))}` : 'ещё не использован Клодом';
   return `<div class="sum-row">
     <span>${esc(t.label || 'Клод')}<br><span class="text-faint" style="font-size:11px;">${esc(when)}</span></span>
-    <button type="button" class="btn ghost small icon-only danger-text" data-revoke-token="${t.id}" title="Отозвать">✕</button>
+    <button type="button" class="btn ghost small icon-only danger-text" data-revoke-token="${t.id}" title="Отозвать">${icon('x',13)}</button>
   </div>`;
 }
 
@@ -654,7 +654,7 @@ function showAgentTokenOnce(url) {
       как есть. Подробности — файл <b>SETUP-AGENT-API.md</b>.
     </p>
     <div class="sql-box">
-      <button class="btn small" id="copyAgentUrl">📋 Скопировать ссылку</button>
+      <button class="btn small" id="copyAgentUrl">${icon('clipboard',15)} Скопировать ссылку</button>
       <pre id="agentUrlText" style="white-space:pre-wrap;word-break:break-all;">${esc(url)}</pre>
     </div>
     <div class="form-actions" style="margin-top:14px;">
