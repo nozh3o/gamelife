@@ -425,6 +425,24 @@ body::before {
 }
 .log-ic { flex: none; }
 
+/* ============ Отсчёт до Бангкока ============ */
+.countdown-card {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff; overflow: hidden; position: relative;
+}
+.countdown-card .card-title { color: #fff; }
+.countdown-card .card-title small { color: rgba(255,255,255,.75); }
+.countdown-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.countdown-cell { background: rgba(255,255,255,.16); border-radius: 16px; padding: 12px 6px; text-align: center; }
+.countdown-num { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.5px; line-height: 1; }
+.countdown-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-top: 4px; font-weight: 600; }
+.countdown-arrived { grid-column: 1/-1; text-align: center; font-size: 18px; font-weight: 800; padding: 8px 0; }
+@media (max-width: 560px) {
+  .countdown-num { font-size: 20px; }
+  .countdown-cell { padding: 9px 4px; border-radius: 13px; }
+  .countdown-label { font-size: 9.5px; }
+}
+
 /* ============ Три колонки задач ============ */
 .task-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .task-col {

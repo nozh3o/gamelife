@@ -20,6 +20,8 @@ function renderTasks() {
       </div>
     </div>
 
+    ${bangkokCountdownHtml()}
+
     <div class="toolbar">
       <input type="search" id="taskSearch" class="search-input" placeholder="🔎 Поиск по названию…" value="${esc(taskFilters.q)}">
       <div class="tag-filter" id="tagFilter">
@@ -78,6 +80,52 @@ function renderTasks() {
     b.addEventListener('click', () => openTaskForm(b.dataset.add)));
 
   renderTaskLists();
+  startBangkokCountdown();
+}
+
+/* ---- Отсчёт до вылета в Бангкок ------------------------------------------
+   Дата зашита прямо в код, а не в state — значит её видят одинаково
+   все, кто открывает это приложение (и ты, и друзья со своими аккаунтами). */
+const BANGKOK_DEPARTURE = new Date(2026, 10, 30, 0, 0, 0);
+let bangkokTimer = null;
+
+function bangkokCountdownHtml() {
+  return `<div class="card countdown-card mt16" id="bangkokCountdown">
+    <div class="card-title">✈️ До Бангкока <small>вылет 30 ноября</small></div>
+    <div class="countdown-grid">
+      <div class="countdown-cell"><div class="countdown-num" id="cdDays">0</div><div class="countdown-label">дней</div></div>
+      <div class="countdown-cell"><div class="countdown-num" id="cdHours">00</div><div class="countdown-label">часов</div></div>
+      <div class="countdown-cell"><div class="countdown-num" id="cdMins">00</div><div class="countdown-label">минут</div></div>
+      <div class="countdown-cell"><div class="countdown-num" id="cdSecs">00</div><div class="countdown-label">секунд</div></div>
+    </div>
+  </div>`;
+}
+
+function tickBangkokCountdown() {
+  const el = document.getElementById('bangkokCountdown');
+  // вкладку сменили — узел из DOM исчез, таймер больше не нужен
+  if (!el) { clearInterval(bangkokTimer); bangkokTimer = null; return; }
+
+  const diff = BANGKOK_DEPARTURE - new Date();
+  if (diff <= 0) {
+    el.querySelector('.countdown-grid').innerHTML = `<div class="countdown-arrived">🎉 Уже летим (или улетели)!</div>`;
+    clearInterval(bangkokTimer); bangkokTimer = null;
+    return;
+  }
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  document.getElementById('cdDays').textContent = days;
+  document.getElementById('cdHours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('cdMins').textContent = String(mins).padStart(2, '0');
+  document.getElementById('cdSecs').textContent = String(secs).padStart(2, '0');
+}
+
+function startBangkokCountdown() {
+  if (bangkokTimer) clearInterval(bangkokTimer);
+  tickBangkokCountdown();
+  bangkokTimer = setInterval(tickBangkokCountdown, 1000);
 }
 
 function matchesFilter(t) {
