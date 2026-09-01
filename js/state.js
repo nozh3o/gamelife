@@ -80,6 +80,9 @@ function defaultState() {
     },
     log: [],
     lastCron: todayStr(),
+    // очередь записей от Клода (через MCP-коннектор) — приходит с сервера через
+    // синхронизацию, applyAgentItem() в main.js разбирает и сразу же очищает
+    agentInbox: [],
   };
 }
 
@@ -145,7 +148,7 @@ function normalize(parsed, d) {
   if (!Array.isArray(s.nutrition.dictionary)) s.nutrition.dictionary = [];
 
   // массивы должны остаться массивами
-  for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log']) {
+  for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log', 'agentInbox']) {
     if (!Array.isArray(s[key])) s[key] = d[key];
   }
   if (!s.lastCron) s.lastCron = todayStr();

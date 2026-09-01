@@ -1,5 +1,5 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v32';
+const CACHE = 'gamelife-v33';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',

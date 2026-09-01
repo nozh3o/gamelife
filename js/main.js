@@ -12,6 +12,61 @@ function mutate(fn) {
   renderAll();
 }
 
+/* ---- Очередь записей от Клода (MCP-коннектор) ---------------------------
+   Клод пишет через личный токен прямо в облачное сохранение (Postgres-функция
+   gamelife_agent_add кладёт запись в state.agentInbox), а разбирает её уже
+   приложение — переиспользуя обычные addTransaction/addMealEntry и т.п.,
+   чтобы не дублировать всю бизнес-логику (баланс счетов, стрики и т.д.)
+   ещё и на сервере. Вызывается из sync.js после каждой синхронизации. */
+function processAgentInbox() {
+  const inbox = state.agentInbox || [];
+  if (!inbox.length) return;
+  let changed = false;
+  inbox.forEach(item => {
+    try { applyAgentItem(item); changed = true; }
+    catch (e) { console.warn('Не удалось применить запись от Клода:', item, e); }
+  });
+  state.agentInbox = [];
+  if (changed) { saveState(); renderAll(); }
+}
+
+function applyAgentItem(item) {
+  const p = item.payload || {};
+  if (item.kind === 'transaction') {
+    const type = p.type === 'income' ? 'income' : 'expense';
+    const amount = Number(p.amount) || 0;
+    let accountId;
+    if (p.account) {
+      const acc = state.finance.accounts.find(a => a.name.toLowerCase() === String(p.account).trim().toLowerCase());
+      if (acc) accountId = acc.id;
+    }
+    addTransaction(amount, type, p.category, p.note, p.date, false, accountId);
+    toast(`🤖 Клод добавил ${type === 'income' ? 'доход' : 'расход'}: ${fmtMoney(amount)}${p.category ? ' · ' + p.category : ''}`, 'gold');
+  } else if (item.kind === 'workout') {
+    const exercises = (p.exercises || []).map(ex => ({
+      id: uid(),
+      name: String(ex.name || 'Упражнение').trim() || 'Упражнение',
+      sets: (ex.sets || []).map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0 }))
+        .filter(s => s.reps > 0 || s.weight > 0),
+    })).filter(ex => ex.sets.length);
+    const title = String(p.title || 'Тренировка').trim() || 'Тренировка';
+    state.workouts.push({
+      id: uid(), title, date: p.date || todayStr(), note: String(p.note || '').trim(),
+      exercises, createdAt: nowISO(),
+    });
+    addLog('🏋️', `Тренировка записана Клодом: ${title}`);
+    toast(`🤖 Клод добавил тренировку: ${title}`, 'gold');
+  } else if (item.kind === 'meal') {
+    const title = String(p.title || 'Приём пищи').trim() || 'Приём пищи';
+    addMealEntry({
+      title, grams: Number(p.grams) || 100, time: p.time || '',
+      kcal: Number(p.kcal) || 0, protein: Number(p.protein) || 0,
+      fat: Number(p.fat) || 0, carbs: Number(p.carbs) || 0, source: 'agent',
+    });
+    toast(`🤖 Клод добавил приём пищи: ${title}`, 'gold');
+  }
+}
+
 /* ---- Навигация --------------------------------------------------------- */
 function renderNav() {
   document.querySelectorAll('.nav-btn').forEach(btn => {

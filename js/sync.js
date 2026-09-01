@@ -209,6 +209,16 @@ async function syncNow(manual = false) {
       return;
     }
 
+    // записи от Клода могли прилететь в облако между синхронизациями (через
+    // gamelife_agent_add) — подмешиваем их в локальное состояние независимо
+    // от того, чья версия победит ниже, иначе push «локальная новее» стёр бы
+    // их простой полной перезаписью строки
+    if (remote.data && Array.isArray(remote.data.agentInbox) && remote.data.agentInbox.length) {
+      const known = new Set((state.agentInbox || []).map(x => x.id));
+      const extra = remote.data.agentInbox.filter(x => !known.has(x.id));
+      if (extra.length) state.agentInbox = [...(state.agentInbox || []), ...extra];
+    }
+
     const remoteAt = Date.parse(remote.updated_at) || 0;
     const localAt = state.updatedAt || 0;
     const localChanged = localAt > syncCfg.lastSyncAt;
@@ -275,6 +285,9 @@ async function syncNow(manual = false) {
     setSyncStatus('error', e.message || 'Ошибка синхронизации');
     if (manual) toast('Не удалось синхронизировать: ' + (e.message || ''), 'red');
   } finally {
+    // независимо от того, какая ветка сработала выше, к этому моменту
+    // agentInbox содержит все известные записи от Клода — разбираем их
+    if (typeof processAgentInbox === 'function') processAgentInbox();
     syncBusy = false;
     renderSyncBadge();
   }
@@ -371,7 +384,75 @@ end $$;
 drop trigger if exists gamelife_touch on public.gamelife_saves;
 create trigger gamelife_touch before insert or update
   on public.gamelife_saves
-  for each row execute function public.gamelife_touch();`;
+  for each row execute function public.gamelife_touch();
+
+-- Личные токены для записи из Клода (MCP-коннектор) и функция, которая
+-- по такому токену кладёт запись в очередь agentInbox внутри сохранения.
+-- Хранится только хеш токена — сам токен показывается один раз при создании.
+create extension if not exists pgcrypto;
+
+create table if not exists public.agent_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token_hash text not null unique,
+  label text default 'Клод',
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz
+);
+
+alter table public.agent_tokens enable row level security;
+
+drop policy if exists "own tokens" on public.agent_tokens;
+create policy "own tokens" on public.agent_tokens
+  for all to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create or replace function public.gamelife_agent_add(p_token text, p_kind text, p_payload jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid;
+  v_hash text;
+  v_item jsonb;
+begin
+  v_hash := encode(digest(p_token, 'sha256'), 'hex');
+
+  select user_id into v_user_id from public.agent_tokens where token_hash = v_hash;
+  if v_user_id is null then
+    raise exception 'invalid token';
+  end if;
+
+  update public.agent_tokens set last_used_at = now() where token_hash = v_hash;
+
+  v_item := jsonb_build_object(
+    'id', gen_random_uuid()::text,
+    'kind', p_kind,
+    'payload', p_payload,
+    'createdAt', now()
+  );
+
+  update public.gamelife_saves
+  set data = jsonb_set(
+        coalesce(data, '{}'::jsonb),
+        '{agentInbox}',
+        coalesce(data->'agentInbox', '[]'::jsonb) || jsonb_build_array(v_item),
+        true
+      ),
+      updated_at = now()
+  where user_id = v_user_id;
+
+  if not found then
+    insert into public.gamelife_saves (user_id, data, device)
+    values (v_user_id, jsonb_build_object('agentInbox', jsonb_build_array(v_item)), 'Клод');
+  end if;
+end;
+$$;
+
+grant execute on function public.gamelife_agent_add(text, text, jsonb) to anon, authenticated;`;
 
 /* ---- Карточка синхронизации в Настройках -------------------------------------- */
 function syncCardHtml() {
@@ -476,7 +557,122 @@ function syncActiveHtml() {
       <div class="form-actions" style="grid-column:1/-1;">
         <button type="submit" class="btn">Сохранить адрес</button>
       </div>
+    </form>
+
+    <hr class="hr">
+    <div class="card-title" style="margin-bottom:8px;">Запись из Клода</div>
+    <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:0 0 10px;">
+      Подключи One как личный коннектор в Клоде — и прямо в переписке сможешь диктовать
+      траты, тренировки и приёмы пищи, а они сами появятся в приложении. Каждая ссылка
+      действует только на твои данные и её можно отозвать в любой момент.
+      Инструкция по подключению — файл <b>SETUP-AGENT-API.md</b> в папке проекта.
+    </p>
+    <div id="agentTokenList" class="summary-list">
+      <div class="text-dim" style="font-size:12.5px;">Загрузка…</div>
+    </div>
+    <form id="agentTokenForm" class="form-grid mt8">
+      <label class="field" style="grid-column:1/-1;">Название ссылки (необязательно)
+        <input type="text" name="label" placeholder="Например: Клод на телефоне" maxlength="40">
+      </label>
+      <div class="form-actions" style="grid-column:1/-1;justify-content:flex-start;">
+        <button type="submit" class="btn">🔑 Создать личную ссылку</button>
+      </div>
     </form>`;
+}
+
+/* ---- Личные токены для записи из Клода (MCP-коннектор) --------------------
+   Токен генерируется в браузере, на сервер уходит только его SHA-256 хеш —
+   сам токен показывается пользователю один раз и нигде больше не хранится. */
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function randomAgentToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return 'gl_' + [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function agentMcpUrl(token) {
+  return syncCfg.url.replace(/\/+$/, '') + '/functions/v1/agent-mcp/' + token;
+}
+
+async function listAgentTokens() {
+  const res = await supaFetch('/rest/v1/agent_tokens?select=id,label,created_at,last_used_at&order=created_at.desc', { method: 'GET' });
+  if (!res.ok) throw new Error(await errorText(res));
+  return res.json();
+}
+async function createAgentToken(label) {
+  const token = randomAgentToken();
+  const hash = await sha256Hex(token);
+  const res = await supaFetch('/rest/v1/agent_tokens', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify([{ user_id: syncCfg.userId, token_hash: hash, label: label || 'Клод' }]),
+  });
+  if (!res.ok) throw new Error(await errorText(res));
+  return token;
+}
+async function revokeAgentToken(id) {
+  const res = await supaFetch(`/rest/v1/agent_tokens?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await errorText(res));
+}
+
+function agentTokenRowHtml(t) {
+  const when = t.last_used_at ? `использован ${fmtRelTime(Date.parse(t.last_used_at))}` : 'ещё не использован Клодом';
+  return `<div class="sum-row">
+    <span>${esc(t.label || 'Клод')}<br><span class="text-faint" style="font-size:11px;">${esc(when)}</span></span>
+    <button type="button" class="btn ghost small icon-only danger-text" data-revoke-token="${t.id}" title="Отозвать">✕</button>
+  </div>`;
+}
+
+async function refreshAgentTokensList(root) {
+  const el = root.querySelector('#agentTokenList');
+  if (!el) return;
+  try {
+    const tokens = await listAgentTokens();
+    el.innerHTML = tokens.length
+      ? tokens.map(agentTokenRowHtml).join('')
+      : `<div class="text-dim" style="font-size:12.5px;">Пока нет ни одной ссылки.</div>`;
+    el.querySelectorAll('[data-revoke-token]').forEach(b => b.addEventListener('click', () => {
+      confirmAction('Отозвать эту ссылку? Клод больше не сможет ею пользоваться.', async () => {
+        try {
+          await revokeAgentToken(b.dataset.revokeToken);
+          refreshAgentTokensList(root);
+          toast('Ссылка отозвана', 'green');
+        } catch (e) { toast('Не удалось отозвать: ' + e.message, 'red'); }
+      });
+    }));
+  } catch (e) {
+    el.innerHTML = `<div class="text-dim" style="font-size:12.5px;">Не удалось загрузить: ${esc(e.message)}</div>`;
+  }
+}
+
+function showAgentTokenOnce(url) {
+  const body = `
+    <p class="text-dim" style="font-size:13px;line-height:1.55;margin:0 0 12px;">
+      Это единственный раз, когда ссылка показывается целиком — сохрани её сейчас.
+      Дальше в Клоде: раздел коннекторов → добавить личный коннектор → вставить ссылку
+      как есть. Подробности — файл <b>SETUP-AGENT-API.md</b>.
+    </p>
+    <div class="sql-box">
+      <button class="btn small" id="copyAgentUrl">📋 Скопировать ссылку</button>
+      <pre id="agentUrlText" style="white-space:pre-wrap;word-break:break-all;">${esc(url)}</pre>
+    </div>
+    <div class="form-actions" style="margin-top:14px;">
+      <button type="button" class="btn primary" data-modal-close>Сохранил, закрыть</button>
+    </div>`;
+  openModal('Личная ссылка для Клода', body, modal => {
+    modal.querySelector('#copyAgentUrl').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast('Ссылка скопирована', 'green');
+      } catch (e) {
+        const r = document.createRange();
+        r.selectNodeContents(modal.querySelector('#agentUrlText'));
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        toast('Ссылка выделена — скопируй сочетанием Ctrl+C', 'gold');
+      }
+    });
+  });
 }
 
 function bindSyncCard(root) {
@@ -571,4 +767,25 @@ function bindSyncCard(root) {
       renderAll();
     });
   });
+
+  const tokenForm = root.querySelector('#agentTokenForm');
+  if (tokenForm) {
+    refreshAgentTokensList(root);
+    tokenForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const label = String(new FormData(tokenForm).get('label') || '').trim();
+      const btn = tokenForm.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        const token = await createAgentToken(label);
+        tokenForm.reset();
+        showAgentTokenOnce(agentMcpUrl(token));
+        refreshAgentTokensList(root);
+      } catch (err) {
+        toast('Не удалось создать ссылку: ' + err.message, 'red');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
 }
