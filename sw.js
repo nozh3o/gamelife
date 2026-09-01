@@ -1,5 +1,5 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v10-debug';
+const CACHE = 'gamelife-v10';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',
@@ -62,27 +62,4 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
-  if (e.data === 'debugInstall') {
-    e.waitUntil((async () => {
-      const report = { cacheOpenOk: false, results: [], cacheName: CACHE };
-      try {
-        const cache = await caches.open(CACHE);
-        report.cacheOpenOk = true;
-        for (const url of CORE.slice(0, 3)) {
-          try {
-            const res = await fetch(url, { cache: 'no-store' });
-            report.results.push({ url, status: res.status, ok: res.ok });
-            if (res.ok) await cache.put(url, res.clone());
-          } catch (err) {
-            report.results.push({ url, error: String(err && err.message || err) });
-          }
-        }
-        const keys = await cache.keys();
-        report.cachedAfter = keys.length;
-      } catch (err) {
-        report.topError = String(err && err.message || err);
-      }
-      e.source.postMessage({ type: 'debugInstallResult', report });
-    })());
-  }
 });
