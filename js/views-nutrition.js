@@ -689,19 +689,46 @@ function foodApiConfigured() {
 }
 
 function openPhotoAnalyzer() {
-  if (!foodApiConfigured()) {
+  if (!syncSignedIn()) {
     openModal('Распознавание по фото', `
       <p style="font-size:13.5px;line-height:1.55;margin:0 0 12px;">
-        Чтобы приложение считало КБЖУ по фотографии, нужно один раз развернуть функцию-посредник
-        в твоём проекте Supabase: ключ от сервиса хранится там, а не в браузере.
+        Для этого нужно войти в аккаунт — так приложение понимает, чей это снимок, и хранит
+        каждому свою историю отдельно. Ничего настраивать не нужно: обычная почта и пароль.
+      </p>
+      <div class="mini-box">Настройки → Синхронизация → «Создать аккаунт» (или «Войти», если уже есть).</div>
+      <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:12px 0 18px;">
+        Пока не вошёл, работают «Штрихкод», «Найти по названию», «Мои блюда» и ручной ввод —
+        они бесплатны и доступны без входа.
+      </p>
+      <div class="form-actions">
+        <button class="btn" data-goto>В настройки</button>
+        <button class="btn primary" data-ok>Понятно</button>
+      </div>`, modal => {
+      modal.querySelector('[data-ok]').addEventListener('click', closeModal);
+      modal.querySelector('[data-goto]').addEventListener('click', () => { closeModal(); goTab('settings'); });
+    });
+    return;
+  }
+
+  if (!foodApiConfigured()) {
+    // сюда попадают только те, кто явно подключил свой проект Supabase
+    // и ещё не указал адрес собственной функции распознавания
+    openModal('Распознавание по фото', `
+      <p style="font-size:13.5px;line-height:1.55;margin:0 0 12px;">
+        Ты подключил свой отдельный проект Supabase — для распознавания фото в нём нужно
+        один раз развернуть функцию-посредник, ключ от сервиса хранится там, а не в браузере.
       </p>
       <div class="mini-box">Пошаговая инструкция — в файле <b>SETUP-FOOD-AI.md</b> в папке проекта.</div>
       <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:12px 0 18px;">
-        Пока это не настроено, работают «Найти продукт», «Мои блюда» и ручной ввод — они бесплатны
-        и не требуют никаких ключей.
+        Пока это не настроено, работают «Штрихкод», «Найти по названию», «Мои блюда» и ручной
+        ввод — они бесплатны и не требуют никаких ключей.
       </p>
-      <div class="form-actions"><button class="btn primary" data-ok>Понятно</button></div>`, modal => {
+      <div class="form-actions">
+        <button class="btn" data-goto>В настройки</button>
+        <button class="btn primary" data-ok>Понятно</button>
+      </div>`, modal => {
       modal.querySelector('[data-ok]').addEventListener('click', closeModal);
+      modal.querySelector('[data-goto]').addEventListener('click', () => { closeModal(); goTab('settings'); });
     });
     return;
   }
