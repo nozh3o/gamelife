@@ -149,10 +149,6 @@ body::before {
   margin-top: auto; padding-top: 10px;
   border-top: 1px solid var(--border-soft);
 }
-.settings-btn { width: 100%; margin-bottom: 8px; }
-/* кнопка «Настройки» живёт вне #mainNav и не участвует в скользящей пилюле —
-   у неё свой статичный фон на активном состоянии */
-.sidebar-footer .nav-btn.active { background: var(--panel-2); }
 .sidebar-footer > span {
   display: block; padding: 6px 12px 2px;
   color: var(--text-faint); font-size: 11.5px; text-transform: capitalize;
@@ -824,8 +820,12 @@ code {
   }
   .sidebar.open { transform: translateX(0); }
 
-  /* отступы с учётом «чёлки» и жестовой полосы на телефонах */
-  .sidebar { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
+  /* отступы с учётом «чёлки» и жестовой полосы на телефонах;
+     снизу — запас, чтобы нижнюю панель не перекрывала футер сайдбара */
+  .sidebar {
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
   .content {
     padding: calc(20px + env(safe-area-inset-top, 0px))
              max(18px, env(safe-area-inset-right, 0px))
