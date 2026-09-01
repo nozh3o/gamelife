@@ -5,13 +5,13 @@
    ========================================================================= */
 
 :root {
-  --bg: #08090e;
-  --bg-soft: #0d0f16;
-  --panel: #12141d;
-  --panel-2: #191c28;
-  --panel-3: #232637;
-  --border: #232637;
-  --border-soft: rgba(255,255,255,.06);
+  --bg: #15171f;
+  --bg-soft: #1b1e28;
+  --panel: #20232f;
+  --panel-2: #292d3c;
+  --panel-3: #333849;
+  --border: #333849;
+  --border-soft: rgba(255,255,255,.09);
   --text: #f3f4f9;
   --text-dim: #9aa1b8;
   --text-faint: #656c85;
@@ -79,10 +79,11 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 body::before {
   content: ''; position: fixed; inset: -10%; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(650px circle at 12% -8%, var(--accent-glow), transparent 60%),
-    radial-gradient(550px circle at 100% 8%, rgba(109,141,255,.16), transparent 55%),
-    radial-gradient(500px circle at 25% 100%, rgba(246,196,83,.06), transparent 60%);
-  opacity: .8;
+    radial-gradient(750px circle at 12% -8%, var(--accent-glow), transparent 62%),
+    radial-gradient(650px circle at 100% 6%, rgba(109,141,255,.26), transparent 58%),
+    radial-gradient(600px circle at 20% 105%, rgba(246,196,83,.12), transparent 62%),
+    radial-gradient(550px circle at 85% 95%, rgba(52,211,153,.08), transparent 58%);
+  opacity: 1;
 }
 :root[data-theme="light"] body::before { opacity: .5; }
 
@@ -90,9 +91,9 @@ body::before {
 .app { display: grid; grid-template-columns: 276px 1fr; min-height: 100vh; position: relative; z-index: 1; }
 
 .sidebar {
-  background: color-mix(in srgb, var(--bg-soft) 88%, transparent);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  background: color-mix(in srgb, var(--bg-soft) 72%, transparent);
+  backdrop-filter: blur(30px) saturate(1.7);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
   border-right: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
@@ -174,9 +175,9 @@ body::before {
   display: none;
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
   background: var(--bg-soft);
-  background: color-mix(in srgb, var(--bg-soft) 86%, transparent);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
+  backdrop-filter: blur(30px) saturate(1.7);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
   border-top: 1px solid var(--border-soft);
   padding: 8px 6px calc(6px + env(safe-area-inset-bottom, 0px));
   align-items: stretch;
@@ -246,9 +247,9 @@ body::before {
 .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .card {
-  background: color-mix(in srgb, var(--panel) 80%, transparent);
-  backdrop-filter: blur(28px) saturate(1.6);
-  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  background: color-mix(in srgb, var(--panel) 62%, transparent);
+  backdrop-filter: blur(34px) saturate(1.9);
+  -webkit-backdrop-filter: blur(34px) saturate(1.9);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   padding: 18px;
@@ -257,10 +258,13 @@ body::before {
   position: relative;
   overflow: hidden;
 }
-/* лёгкий блик сверху — стеклянный вид, как материалы iOS (Control Center и т.п.) */
+/* зеркальный блик сверху и лёгкая подсветка снизу — стеклянный вид,
+   как материалы iOS (Control Center, виджеты) */
 .card::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(160deg, rgba(255,255,255,.06), transparent 45%);
+  background:
+    linear-gradient(160deg, rgba(255,255,255,.16), transparent 40%),
+    linear-gradient(0deg, rgba(255,255,255,.03), transparent 30%);
 }
 .card-title {
   font-weight: 700; font-size: 14.5px; margin: 0 0 13px;
@@ -825,9 +829,9 @@ code {
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal {
-  background: color-mix(in srgb, var(--panel) 84%, transparent);
-  backdrop-filter: blur(32px) saturate(1.6);
-  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  background: color-mix(in srgb, var(--panel) 68%, transparent);
+  backdrop-filter: blur(38px) saturate(1.9);
+  -webkit-backdrop-filter: blur(38px) saturate(1.9);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg); width: 100%; max-width: 540px;
   box-shadow: 0 30px 80px rgba(0,0,0,.55);
