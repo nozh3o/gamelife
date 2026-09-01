@@ -39,7 +39,8 @@
 
     <nav class="nav" id="mainNav">
       <div class="nav-indicator" id="navIndicator"></div>
-      <button class="nav-btn active" data-tab="tasks"><span class="nav-ic">✅</span><span>Задачи</span></button>
+      <button class="nav-btn active" data-tab="home"><span class="nav-ic">🏠</span><span>Главная</span></button>
+      <button class="nav-btn" data-tab="tasks"><span class="nav-ic">✅</span><span>Задачи</span></button>
       <button class="nav-btn" data-tab="goals"><span class="nav-ic">🎯</span><span>Цели</span></button>
       <button class="nav-btn" data-tab="journal"><span class="nav-ic">📔</span><span>Журнал</span></button>
 
@@ -61,16 +62,18 @@
 
 <nav class="bottom-nav" id="bottomNav">
   <div class="bn-indicator" id="bnIndicator"></div>
+  <button class="nav-btn bn-btn" data-tab="home"><span class="bn-ic">🏠</span><span class="bn-label">Главная</span></button>
   <button class="nav-btn bn-btn" data-tab="tasks"><span class="bn-ic">✅</span><span class="bn-label">Задачи</span></button>
   <button class="nav-btn bn-btn" data-tab="finance"><span class="bn-ic">💰</span><span class="bn-label">Финансы</span></button>
   <button class="nav-btn bn-btn" data-tab="nutrition"><span class="bn-ic">🥗</span><span class="bn-label">Питание</span></button>
-  <button class="nav-btn bn-btn" data-tab="journal"><span class="bn-ic">📔</span><span class="bn-label">Журнал</span></button>
   <button class="bn-btn bn-more" id="bottomMoreBtn"><span class="bn-ic">☰</span><span class="bn-label">Ещё</span></button>
 </nav>
 
 <script src="js/state.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/phrases.js"></script>
+<script src="js/views-home.js"></script>
 <script src="js/views-tasks.js"></script>
 <script src="js/views-goals.js"></script>
 <script src="js/food-db.js"></script>

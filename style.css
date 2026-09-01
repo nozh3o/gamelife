@@ -439,6 +439,11 @@ body::before {
   .countdown-label { font-size: 9.5px; }
 }
 
+/* ============ Фраза дня ============ */
+.phrase-card { display: flex; gap: 12px; align-items: flex-start; }
+.phrase-mark { font-size: 30px; line-height: 1; color: var(--accent-2); flex: none; font-weight: 800; }
+.phrase-text { margin: 4px 0 0; font-size: 15px; font-weight: 600; line-height: 1.5; font-style: italic; }
+
 /* ============ Три колонки задач ============ */
 .task-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .task-col {

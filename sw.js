@@ -1,9 +1,10 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v19';
+const CACHE = 'gamelife-v20';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',
   './js/state.js', './js/ui.js', './js/engine.js',
+  './js/phrases.js', './js/views-home.js',
   './js/views-tasks.js', './js/views-goals.js',
   './js/food-db.js', './js/views-nutrition.js',
   './js/views-finance.js',

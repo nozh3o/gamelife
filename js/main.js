@@ -2,7 +2,7 @@
    main.js — навигация, цикл перерисовки, запуск
    ========================================================================= */
 
-let currentTab = 'tasks';
+let currentTab = 'home';
 const content = () => document.getElementById('content');
 
 /* Любое изменение состояния идёт через mutate: сохраняем и перерисовываем интерфейс. */
@@ -64,6 +64,7 @@ function goTab(tab) {
 
 /* ---- Диспетчер вкладок -------------------------------------------------- */
 const TAB_RENDERERS = {
+  home: renderHome,
   tasks: renderTasks,
   goals: renderGoals,
   nutrition: renderNutrition,
@@ -76,7 +77,7 @@ const TAB_RENDERERS = {
 function renderAll() {
   renderNav();
   renderSyncBadge();
-  (TAB_RENDERERS[currentTab] || renderTasks)();
+  (TAB_RENDERERS[currentTab] || renderHome)();
 }
 
 function applyTheme() {

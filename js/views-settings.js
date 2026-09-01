@@ -230,7 +230,7 @@ function resetAll() {
       state = defaultState();
       saveState();
       applyTheme();
-      currentTab = 'tasks';
+      currentTab = 'home';
       renderAll();
       toast('Все данные удалены', 'red');
     });
