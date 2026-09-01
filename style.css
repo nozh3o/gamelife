@@ -246,12 +246,21 @@ body::before {
 .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .card {
-  background: var(--panel);
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   padding: 18px;
   box-shadow: var(--shadow-soft);
   min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+/* лёгкий блик сверху — стеклянный вид, как материалы iOS (Control Center и т.п.) */
+.card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,.06), transparent 45%);
 }
 .card-title {
   font-weight: 700; font-size: 14.5px; margin: 0 0 13px;
@@ -816,7 +825,10 @@ code {
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal {
-  background: var(--panel); border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  backdrop-filter: blur(32px) saturate(1.6);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg); width: 100%; max-width: 540px;
   box-shadow: 0 30px 80px rgba(0,0,0,.55);
   animation: pop .3s var(--spring);
