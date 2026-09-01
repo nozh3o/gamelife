@@ -1,13 +1,27 @@
 /* =========================================================================
    sync.js — синхронизация прогресса между устройствами через Supabase.
 
-   Данные хранятся в проекте Supabase, который заводит сам пользователь:
-   ключи и токены лежат отдельно от игрового состояния и никуда больше не уходят.
+   Проект Supabase и функция распознавания фото зашиты по умолчанию —
+   любой, кто откроет приложение, может завести аккаунт (почта + пароль)
+   и сразу получить синхронизацию и разбор фото, ни разу не увидев слово
+   Supabase. Изоляция данных между разными людьми обеспечивается не
+   отдельными базами, а политикой RLS внутри одной базы (каждый видит
+   только свою строку по auth.uid()) — см. SQL в syncSetupHtml() ниже.
+
+   Ключ anon — публичный по своей природе (Supabase сам называет его
+   "anon public"), встраивать его в клиентский код — стандартная практика.
+   Продвинутый пользователь всё ещё может подключить свой собственный
+   проект через «Изменить настройки подключения» в Настройках.
    ========================================================================= */
 
 const SYNC_KEY = 'gamelife_sync_v1';
 const STATE_BACKUP_KEY = 'gamelife_state_backup';
 const PUSH_DEBOUNCE_MS = 4000;
+
+// Проект и функция по умолчанию — общие для всех, кто открыл приложение
+const DEFAULT_SUPABASE_URL = 'https://tmbqcsdwbplxahuegzmp.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtYnFjc2R3YnBseGFodWVnem1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTM1NTUsImV4cCI6MjEwMzgyOTU1NX0.be9I43nGhxwGmn4V6reWNW98m2qVSikI6isXUQdKzgU';
+const DEFAULT_FOOD_FN = 'https://tmbqcsdwbplxahuegzmp.supabase.co/functions/v1/clever-action';
 
 let syncCfg = loadSyncCfg();
 let syncStatus = { kind: 'idle', text: '' };   // idle | busy | ok | error | off
@@ -17,11 +31,11 @@ let syncBusy = false;
 /* ---- Конфигурация ------------------------------------------------------- */
 function defaultSyncCfg() {
   return {
-    url: '', anonKey: '',
+    url: DEFAULT_SUPABASE_URL, anonKey: DEFAULT_SUPABASE_ANON_KEY,
     accessToken: '', refreshToken: '', userId: '', email: '',
     deviceId: uid(), deviceName: guessDeviceName(),
     auto: true,
-    foodFn: '',        // адрес Edge Function для разбора фото еды
+    foodFn: DEFAULT_FOOD_FN,   // адрес Edge Function для разбора фото еды
     lastSyncAt: 0,     // локальное время последней удачной синхронизации
     lastRemoteAt: 0,   // серверное updated_at на тот же момент
   };
@@ -373,9 +387,10 @@ function syncCardHtml() {
 
 function syncSetupHtml() {
   return `<p class="text-dim" style="font-size:13px;line-height:1.55;margin:0 0 14px;">
-      Чтобы прогресс жил на всех устройствах, нужен бесплатный проект Supabase —
-      это твоё личное хранилище, доступа к нему нет ни у кого, кроме тебя.
-      Настройка разовая, занимает пару минут.
+      Синхронизация уже работает «из коробки» — обычно достаточно просто завести аккаунт
+      на предыдущем экране. Сюда попадают, только если явно нажали «Использовать свой проект»:
+      это для тех, кто хочет держать данные в собственном, отдельном хранилище Supabase,
+      а не в общем.
     </p>
 
     <ol class="setup-steps">
@@ -406,10 +421,12 @@ function syncSetupHtml() {
 }
 
 function syncLoginHtml() {
-  return `<div class="ok-box" style="margin-top:0;">Проект подключён: ${esc(syncCfg.url)}</div>
-    <p class="text-dim" style="font-size:13px;line-height:1.55;">
-      Теперь заведи учётную запись — она нужна, чтобы твои данные видел только ты.
-      На втором устройстве войди этой же почтой и паролем, и прогресс подтянется.
+  const isCustom = syncCfg.url !== DEFAULT_SUPABASE_URL;
+  return `<p class="text-dim" style="font-size:13px;line-height:1.55;margin-top:0;">
+      Заведи аккаунт — просто почта и пароль, больше ничего настраивать не нужно.
+      Он нужен только для того, чтобы твои данные видел лишь ты: у каждого своя
+      изолированная копия прогресса, даже если приложением пользуется ещё кто-то.
+      На втором устройстве войди этой же парой, и прогресс подтянется сам.
     </p>
     <form id="syncLoginForm" class="form-grid">
       <label class="field">Почта
@@ -423,7 +440,8 @@ function syncLoginHtml() {
         <button type="submit" class="btn primary">Войти</button>
       </div>
     </form>
-    <button class="btn ghost small mt8" id="syncReset">Изменить настройки подключения</button>`;
+    ${isCustom ? `<div class="text-dim" style="font-size:12px;margin-top:10px;">Подключён свой проект: ${esc(syncCfg.url)}</div>` : ''}
+    <button class="btn ghost small mt8" id="syncReset">Использовать свой проект Supabase</button>`;
 }
 
 function syncActiveHtml() {
@@ -450,9 +468,9 @@ function syncActiveHtml() {
     <hr class="hr">
     <div class="card-title" style="margin-bottom:8px;">Распознавание еды по фото</div>
     <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:0 0 10px;">
-      Адрес функции <code>analyze-food</code> из твоего проекта Supabase. Ключ от сервиса
-      распознавания задаётся там же в секретах и в браузер не попадает — сюда вставляется
-      только адрес. Инструкция: файл <b>SETUP-FOOD-AI.md</b> в папке проекта.
+      ${syncCfg.foodFn
+        ? 'Уже подключено — «По фото» во вкладке «Питание» готово к работе. Адрес ниже можно поменять на свой, если разворачивал отдельную функцию.'
+        : 'Адрес Edge Function, которая разбирает фото. Инструкция — файл <b>SETUP-FOOD-AI.md</b> в папке проекта.'}
     </p>
     <form id="foodFnForm" class="form-grid">
       <label class="field" style="grid-column:1/-1;">Адрес функции
@@ -519,11 +537,11 @@ function bindSyncCard(root) {
 
   const resetBtn = root.querySelector('#syncReset');
   if (resetBtn) resetBtn.addEventListener('click', () => {
-    confirmAction('Забыть настройки подключения к Supabase? Прогресс на этом устройстве останется на месте.', () => {
-      syncCfg = { ...defaultSyncCfg(), deviceId: syncCfg.deviceId, deviceName: syncCfg.deviceName };
+    confirmAction('Переключиться на собственный проект Supabase вместо общего? Прогресс на этом устройстве останется на месте, но синхронизация до входа в новый проект работать не будет.', () => {
+      syncCfg = { ...defaultSyncCfg(), deviceId: syncCfg.deviceId, deviceName: syncCfg.deviceName, url: '', anonKey: '', foodFn: '' };
       saveSyncCfg();
       renderAll();
-    });
+    }, false);
   });
 
   const nowBtn = root.querySelector('#syncNowBtn');
