@@ -33,6 +33,9 @@ function renderJournal() {
         <label class="field mt16">Три победы дня — по одной на строку
           <textarea name="wins" rows="3" placeholder="Сделал зарядку&#10;Закрыл сложную задачу&#10;Позвонил родителям">${esc(((todayEntry && todayEntry.wins) || []).join('\n'))}</textarea>
         </label>
+        <label class="field mt8">За что благодарен сегодня — по одной на строку
+          <textarea name="gratitude" rows="3" placeholder="Тёплый дом&#10;Друг помог с переездом&#10;Вкусный завтрак">${esc(((todayEntry && todayEntry.gratitude) || []).join('\n'))}</textarea>
+        </label>
         <label class="field mt8">Свободная запись
           <textarea name="text" rows="4" placeholder="Что получилось, что мешало, что попробую завтра…">${esc((todayEntry && todayEntry.text) || '')}</textarea>
         </label>
@@ -58,17 +61,18 @@ function renderJournal() {
     e.preventDefault();
     const f = new FormData(form);
     const wins = String(f.get('wins') || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const gratitude = String(f.get('gratitude') || '').split('\n').map(s => s.trim()).filter(Boolean);
     const text = String(f.get('text') || '').trim();
     const mood = Number(f.get('mood')) || 3;
-    if (!wins.length && !text) { toast('Напиши хотя бы одну строку', 'red'); return; }
+    if (!wins.length && !gratitude.length && !text) { toast('Напиши хотя бы одну строку', 'red'); return; }
 
     mutate(() => {
       const existing = state.journal.find(j => j.date === today);
       if (existing) {
-        Object.assign(existing, { mood, wins, text, updatedAt: nowISO() });
+        Object.assign(existing, { mood, wins, gratitude, text, updatedAt: nowISO() });
         toast('Запись обновлена', 'green');
       } else {
-        state.journal.unshift({ id: uid(), date: today, mood, wins, text, createdAt: nowISO() });
+        state.journal.unshift({ id: uid(), date: today, mood, wins, gratitude, text, createdAt: nowISO() });
         addLog('📔', 'Сделана запись в журнале');
         toast('📔 День записан', 'green');
         SFX.complete();
@@ -85,6 +89,7 @@ function renderJournal() {
         <button class="btn ghost small icon-only danger-text" data-j-del="${j.id}" title="Удалить">✕</button>
       </div>
       ${(j.wins || []).length ? `<ul class="je-wins">${j.wins.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+      ${(j.gratitude || []).length ? `<ul class="je-wins je-gratitude">${j.gratitude.map(g => `<li>🙏 ${esc(g)}</li>`).join('')}</ul>` : ''}
       ${j.text ? `<p class="je-text">${esc(j.text)}</p>` : ''}
     </div>`;
   }).join('') : `<div class="empty-hint">Записей пока нет</div>`;

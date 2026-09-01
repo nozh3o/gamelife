@@ -192,6 +192,40 @@ function donutSvg(parts, { size = 150, valueFmt = fmtMoney, showPct = true } = {
   </div>`;
 }
 
+/* Тепловая карта активности (как на GitHub): counts — { 'YYYY-MM-DD': 0..3 },
+   чем больше видов активности в этот день (привычка/журнал/питание), тем ярче клетка. */
+function activityHeatmapHtml(counts, weeks = 20) {
+  const today = new Date();
+  const totalDays = weeks * 7;
+  const start = new Date(today);
+  start.setDate(start.getDate() - totalDays + 1);
+  const shift = (start.getDay() + 6) % 7; // выравниваем на понедельник
+  start.setDate(start.getDate() - shift);
+
+  const cursor = new Date(start);
+  const columns = [];
+  while (cursor <= today) {
+    const col = [];
+    for (let i = 0; i < 7; i++) {
+      const ds = dateStr(cursor);
+      const level = Math.min(3, counts[ds] || 0);
+      col.push(cursor > today
+        ? `<div class="hm-cell empty"></div>`
+        : `<div class="hm-cell l${level}" title="${fmtDateHuman(ds)}${level ? ' · были активны' : ''}"></div>`);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    columns.push(`<div class="hm-col">${col.join('')}</div>`);
+  }
+  return `<div class="heatmap-wrap">
+      <div class="heatmap">${columns.join('')}</div>
+      <div class="hm-legend">
+        <span>меньше</span>
+        <div class="hm-cell l0"></div><div class="hm-cell l1"></div><div class="hm-cell l2"></div><div class="hm-cell l3"></div>
+        <span>больше</span>
+      </div>
+    </div>`;
+}
+
 /* Кольцо прогресса (Apple Activity Ring): одно значение 0–100%,
    опционально крупная подпись и мелкая — в центре. */
 function ringSvg(pct, { size = 108, stroke = 10, color = 'var(--accent)', trackColor = 'var(--panel-2)', label = '', sub = '' } = {}) {

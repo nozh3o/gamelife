@@ -67,6 +67,7 @@ const TAB_RENDERERS = {
   home: renderHome,
   tasks: renderTasks,
   goals: renderGoals,
+  wishes: renderWishes,
   nutrition: renderNutrition,
   finance: renderFinance,
   stats: renderStats,

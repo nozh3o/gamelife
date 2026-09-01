@@ -29,6 +29,12 @@ function renderHome() {
       </div>
     </div>
 
+    <div class="add-row" style="margin-top:0;">
+      <button class="btn primary" data-quick="expense">💸 Трата</button>
+      <button class="btn" data-quick="meal">🍽️ Приём пищи</button>
+      <button class="btn" data-quick="journal">📔 Запись в журнал</button>
+    </div>
+
     ${bangkokCountdownHtml()}
 
     <div class="card phrase-card mt16">
@@ -77,6 +83,13 @@ function renderHome() {
     b.addEventListener('click', () => toggleDaily(b.dataset.homeDaily)));
   content().querySelectorAll('[data-home-todo]').forEach(b =>
     b.addEventListener('click', () => toggleTodo(b.dataset.homeTodo)));
+
+  content().querySelectorAll('[data-quick]').forEach(b => b.addEventListener('click', () => {
+    const kind = b.dataset.quick;
+    if (kind === 'expense') openTxForm();
+    else if (kind === 'meal') openFoodAdd('photo');
+    else if (kind === 'journal') goTab('journal');
+  }));
 
   startBangkokCountdown();
 }

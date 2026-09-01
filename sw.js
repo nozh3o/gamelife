@@ -1,11 +1,11 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v23';
+const CACHE = 'gamelife-v24';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',
   './js/state.js', './js/ui.js', './js/engine.js',
   './js/phrases.js', './js/views-home.js',
-  './js/views-tasks.js', './js/views-goals.js',
+  './js/views-tasks.js', './js/views-goals.js', './js/views-wishes.js',
   './js/food-db.js', './js/views-nutrition.js',
   './js/views-finance.js',
   './js/views-stats.js', './js/views-journal.js',

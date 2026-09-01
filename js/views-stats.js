@@ -3,6 +3,10 @@
    ========================================================================= */
 
 function renderStats() {
+  // ---- Активность: сколько разных дел в какой день --------------------
+  const activityCounts = computeActivityCounts();
+  const activityStreak = computeActivityStreak(activityCounts);
+
   // ---- Финансы: последние 6 месяцев -------------------------------------
   const months = [];
   for (let i = 5; i >= 0; i--) {
@@ -38,6 +42,12 @@ function renderStats() {
       </div>
     </div>
 
+    <div class="section-label">Активность <span class="chip ${activityStreak ? 'gold' : ''}">🔥 ${activityStreak} ${plural(activityStreak, 'день', 'дня', 'дней')} подряд</span></div>
+    <div class="card">
+      <div class="card-title">Карта активности <small>последние 20 недель</small></div>
+      ${activityHeatmapHtml(activityCounts, 20)}
+    </div>
+
     <div class="section-label">Финансы</div>
     <div class="grid cols-2">
       <div class="card">
@@ -62,6 +72,38 @@ function renderStats() {
     </div>
 
     ${moodChartHtml()}`;
+}
+
+/* Считаем «сколько видов активности» было в каждый день: привычка/ежедневка
+   отмечена, запись в журнале, запись в дневнике питания — без всякого XP,
+   просто честный след того, что днём что-то делалось. */
+function computeActivityCounts() {
+  const map = {};
+  const touch = ds => { map[ds] = (map[ds] || 0) + 1; };
+
+  const seenDaily = {};
+  state.dailies.forEach(d => (d.history || []).forEach(ds => {
+    seenDaily[ds] = seenDaily[ds] || new Set();
+    if (!seenDaily[ds].has('daily')) { seenDaily[ds].add('daily'); touch(ds); }
+  }));
+  const seenJournal = new Set();
+  state.journal.forEach(j => { if (!seenJournal.has(j.date)) { seenJournal.add(j.date); touch(j.date); } });
+  const seenNutrition = new Set();
+  state.nutrition.entries.forEach(e => { if (!seenNutrition.has(e.date)) { seenNutrition.add(e.date); touch(e.date); } });
+
+  return map;
+}
+
+function computeActivityStreak(counts) {
+  let streak = 0;
+  const cursor = new Date();
+  if (!counts[dateStr(cursor)]) cursor.setDate(cursor.getDate() - 1);
+  let guard = 0;
+  while (counts[dateStr(cursor)] && guard++ < 3650) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
 }
 
 function moodChartHtml() {
