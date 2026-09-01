@@ -1,5 +1,5 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v8';
+const CACHE = 'gamelife-v9';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',
@@ -15,12 +15,22 @@ const EXTRA = [
   './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
 ];
 
+/* cache.addAll()/add() используют обычный fetch(), а он уважает HTTP-кеш
+   (GitHub Pages отдаёт файлы с Cache-Control: max-age=600) — из-за этого
+   при установке новой версии в свежий кеш мог утащиться ещё старый файл.
+   Поэтому качаем каждый файл вручную, явно обходя HTTP-кеш. */
+async function cachePutFresh(cache, url) {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (res && res.ok) await cache.put(url, res);
+  return res;
+}
+
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await cache.addAll(CORE);
+    await Promise.all(CORE.map(url => cachePutFresh(cache, url)));
     // иконки не критичны — если что-то не скачалось, установку не валим
-    await Promise.allSettled(EXTRA.map(url => cache.add(url)));
+    await Promise.allSettled(EXTRA.map(url => cachePutFresh(cache, url)));
     await self.skipWaiting();
   })());
 });
