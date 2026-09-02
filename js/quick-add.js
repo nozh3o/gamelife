@@ -187,34 +187,68 @@ function qaParseMoney(t) {
 
 /* ---- Еда ---------------------------------------------------------------- */
 
-/* Поиск блюда: сначала «Мои блюда», потом встроенный справочник.
-   Русские окончания встроенный поиск не понимает («гречки» ≠ «Гречка»),
-   поэтому пробуем ещё и усечённые основы слов — от длинных к коротким. */
+/* Морфологические обрубки слова — от точного к общему. Полное слово пробуем
+   первым, короче — только запасной вариант под непредсказуемое окончание
+   («гречки» → «гречк» → «греч»), поэтому оно не должно перебивать точное
+   совпадение другого слова той же фразы. */
+function qaWordStems(w) {
+  const out = [w];
+  for (let cut = 1; cut <= 3; cut++) if (w.length - cut >= 3) out.push(w.slice(0, -cut));
+  return out;
+}
+
+/* Совпадение по началу слова — и в полном, и в обрубленном виде — а не
+   «содержит»: так «яйца» находит «яйцо» (падеж другой, но начало то же),
+   но случайная общая часть где-то в середине названия не засчитывается.
+   Возвращаем длину именно общей части (короче из двух слов) — иначе короткое
+   слово блюда («банан»), случайно оказавшееся началом длинного слова фразы
+   («бананом»), давало бы неоправданно высокий счёт по длине слова фразы. */
+function qaWordMatch(queryWord, dishWord) {
+  for (const stem of qaWordStems(queryWord)) {
+    if (dishWord.startsWith(stem) || stem.startsWith(dishWord)) return Math.min(stem.length, dishWord.length);
+  }
+  return 0;
+}
+
+/* Насколько блюдо соответствует фразе целиком: суммируем лучшее совпадение
+   по каждому значимому слову фразы (а не по первому подвернувшемуся). Так
+   «греческий йогурт» находит «Йогурт греческий» (совпали оба слова), а не
+   «Салат греческий» (совпало только «греческий»); «3 варёных яйца» находит
+   «Яйцо варёное» (совпали и «варёных», и «яйца»), а не «Варенье» — у него
+   общий корень только с одним словом фразы, а не с обоими. */
+function qaFoodScore(words, title, alias) {
+  const dishWords = [...qaNorm(title).split(' '), ...(alias ? qaNorm(alias).split(' ') : [])].filter(w => w.length > 2);
+  let score = 0;
+  for (const w of words) score += Math.max(0, ...dishWords.map(dw => qaWordMatch(w, dw)));
+  return score;
+}
+
+function qaBestFoodMatch(words, list) {
+  let best = null, bestScore = 0;
+  for (const it of list) {
+    const score = qaFoodScore(words, it.title, it.alias);
+    if (score > bestScore || (score === bestScore && best && it.title.length < best.title.length)) {
+      best = it; bestScore = score;
+    }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+/* Поиск блюда: сначала «Мои блюда», потом встроенный справочник — в обоих
+   выбираем не первое случайно найденное, а то, что лучше всего покрывает
+   слова фразы (см. qaFoodScore). */
 function qaFoodLookup(name) {
   const q = qaNorm(name).replace(/[^а-яa-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!q) return null;
   const words = q.split(' ').filter(w => w.length > 2);
-  const stems = [];
-  words.forEach(w => {
-    for (let cut = 1; cut <= 3; cut++) if (w.length - cut >= 3) stems.push(w.slice(0, -cut));
-  });
-  stems.sort((a, b) => b.length - a.length);
-  const variants = [...new Set([q, ...words, ...stems])];
+  if (!words.length) return null;
 
-  for (const v of variants) {
-    const dish = (state.nutrition.dictionary || []).find(d => qaNorm(d.title).includes(v) && d.per100);
-    if (dish) return { title: dish.title, per100: dish.per100 };
+  const dish = qaBestFoodMatch(words, (state.nutrition.dictionary || []).filter(d => d.per100));
+  if (dish) return { title: dish.title, per100: dish.per100 };
 
-    const hits = searchLocalFoodDb(v, 6);
-    if (!hits.length) continue;
-    const starts = hits.find(h => qaNorm(h.title).startsWith(v));
-    if (starts) return starts;
-    // слово нашлось только в середине названий («масла» → «Шпроты в масле»)
-    // — тогда берём самое простое блюдо, оно почти всегда и имелось в виду
-    return hits.slice().sort((a, b) =>
-      a.title.split(' ').length - b.title.split(' ').length || a.title.length - b.title.length)[0];
-  }
-  return null;
+  const item = qaBestFoodMatch(words, FOOD_DB);
+  if (!item) return null;
+  return { title: item.title, per100: { kcal: item.kcal, protein: item.protein, fat: item.fat, carbs: item.carbs } };
 }
 
 function qaPieceWeight(name) {

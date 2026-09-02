@@ -501,14 +501,16 @@ const FOOD_DB = [
   { title: 'Творожок детский',                                     kcal: 105, protein: 8,   fat: 4.5, carbs: 9 },
 ];
 
-/* Поиск по локальной базе — без сети, мгновенно. Проверяет и title, и alias. */
+/* Поиск по локальной базе — без сети, мгновенно. Проверяет и title, и alias.
+   ё приравниваем к е — иначе «варёное» и «вареное» (так печатают почти
+   всегда) считались бы разными словами и совпадение просто не находилось бы. */
 function searchLocalFoodDb(query, limit = 12) {
-  const q = String(query).trim().toLowerCase();
+  const q = String(query).trim().toLowerCase().replace(/ё/g, 'е');
   if (!q) return [];
   const scored = [];
   for (const item of FOOD_DB) {
-    const title = item.title.toLowerCase();
-    const alias = (item.alias || '').toLowerCase();
+    const title = item.title.toLowerCase().replace(/ё/g, 'е');
+    const alias = (item.alias || '').toLowerCase().replace(/ё/g, 'е');
     let score = -1;
     if (title.startsWith(q)) score = 0;
     else if (title.includes(q)) score = 1;

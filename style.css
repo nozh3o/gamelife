@@ -309,8 +309,9 @@ body::before {
 .stat-mini-sub { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 560px) {
   .balance-hero-amount { font-size: 28px; }
-  .stat-mini-value { font-size: 14px; }
-  .stat-mini { padding: 11px 10px; }
+  .stat-mini-value { font-size: 15px; }
+  .stat-mini { padding: 14px 12px; }
+  .stat-mini-row { gap: 10px; }
 }
 
 .kpi .kpi-label { font-size: 12px; color: var(--text-dim); margin-bottom: 7px; font-weight: 500; }
@@ -495,6 +496,11 @@ body::before {
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; flex: none;
 }
+/* Селектор выше нацелен на бейдж категории, но по классу .ic случайно
+   цеплял и обычные маленькие иконки внутри кнопок строки (карандаш,
+   крестик) — раздувал их до размера бейджа с фоном. Возвращаем им
+   собственный маленький размер. */
+.row-item .btn .ic { width: auto; height: auto; background: none; border-radius: 0; display: inline-block; }
 .log-ic { flex: none; }
 
 /* ============ Быстрый ввод одной фразой ============ */
@@ -1067,10 +1073,10 @@ code {
     padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
   }
   .content {
-    padding: calc(20px + env(safe-area-inset-top, 0px))
-             max(18px, env(safe-area-inset-right, 0px))
+    padding: calc(22px + env(safe-area-inset-top, 0px))
+             max(20px, env(safe-area-inset-right, 0px))
              calc(88px + env(safe-area-inset-bottom, 0px))
-             max(18px, env(safe-area-inset-left, 0px));
+             max(20px, env(safe-area-inset-left, 0px));
   }
   .toast-root { top: calc(18px + env(safe-area-inset-top, 0px)); }
 
@@ -1078,20 +1084,60 @@ code {
   .check-btn { width: 34px; height: 34px; font-size: 17px; }
   .check-btn.small { width: 30px; height: 30px; font-size: 15px; }
   .pm-btn { width: 38px; height: 38px; font-size: 20px; }
-  .btn.icon-only { padding: 9px 12px; }
+  /* было 9px 12px — несимметричный паддинг на круглой кнопке даёт не круг,
+     а вытянутый овал, да ещё и раздутый иконкой из бага выше. Фиксированный
+     размер — как у соседних круглых кнопок (check-btn, day-nav-btn). */
+  .btn.icon-only { width: 32px; height: 32px; padding: 0; }
   /* :hover не срабатывает по тапу — на телефоне кнопки редактирования/
      удаления строки задачи должны быть видны всегда, а не только по наведению */
   .task-actions, .account-actions { opacity: 1; }
   .cl-item { padding: 3px 0; }
   .cl-item input { width: 18px; height: 18px; }
-  .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  /* cols-3 раньше сжимался в 2 узкие колонки — на телефоне отдаём карточкам
+     всю ширину, им есть где дышать. cols-4 (мелкие KPI-плитки) оставляем
+     в 2 колонки — иначе экран растягивается на несколько прокруток. */
+  .grid.cols-3 { grid-template-columns: 1fr; }
+
+  /* больше воздуха на телефоне: интервалы ниже были подогнаны под ПК —
+     на узком экране без вторых колонок их стоит увеличить, а не урезать */
+  .grid { gap: 18px; }
+  .list { gap: 13px; }
+  .card { padding: 20px; }
+  .row-item { padding: 14px 16px; }
+  .task-card { padding: 16px; }
+  .page-head { margin-bottom: 28px; }
+  .section-label { margin: 34px 0 14px; }
+  .acc-row, .goal-grid, .wish-grid { gap: 16px; }
+
+  /* Строка списка (операция, приём пищи): раньше это была одна флекс-строка
+     из иконки + названия + суммы + кнопок — на узком экране им всем не
+     хватало места, название сжималось почти до нуля и переносилось по
+     буквам, а дата вылезала прямо поверх суммы. Переводим на сетку 2×2:
+     сверху название и сумма, снизу дата/категория и кнопки — у каждого
+     блока теперь своё место, ничего не наезжает друг на друга. */
+  .row-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "icon main amount" "icon main actions";
+    column-gap: 12px; row-gap: 3px;
+  }
+  .row-item > .ic-badge, .row-item > .check-btn, .row-item > .ic { grid-area: icon; align-self: center; }
+  .row-item > .main { grid-area: main; overflow: hidden; align-self: center; }
+  .row-item > .tx-amount { grid-area: amount; justify-self: end; align-self: center; }
+  .row-item > .actions { grid-area: actions; justify-self: end; align-self: end; }
+  .row-item .title {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .row-item .meta { overflow: hidden; }
+  .tx-amount { font-size: 14px; }
 }
 @media (max-width: 560px) {
   .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; }
   /* короткие KPI-плитки оставляем по две в ряд, иначе экран растягивается
      на несколько экранов прокрутки */
-  .grid.cols-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .grid.cols-4 .card { padding: 13px; }
+  .grid.cols-4 { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid.cols-4 .card { padding: 15px; }
   .grid.cols-4 .big-number { font-size: 22px; }
   .grid.cols-4 .kpi-sub { font-size: 10.5px; }
   .goal-grid { grid-template-columns: 1fr; }
