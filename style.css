@@ -558,7 +558,13 @@ body::before {
   0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
   50% { box-shadow: 0 0 0 9px rgba(0,0,0,0); }
 }
-.qb-hints { display: flex; gap: 6px; margin-top: 8px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
+.qb-hints {
+  display: flex; gap: 6px; margin-top: 8px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none;
+  /* лёгкое затухание по краям — намекает, что ряд подсказок можно проскроллить,
+     а не обрубает последний чип на полуслове */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 24px), transparent 100%);
+}
 .qb-hints::-webkit-scrollbar { display: none; }
 .qb-hints .chip-btn { flex: none; white-space: nowrap; }
 
