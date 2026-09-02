@@ -169,6 +169,71 @@ function applyRemoteState(data) {
   renderAll();
 }
 
+/* ---- История сохранений: список версий + восстановление -------------------
+   Каждая перезапись строки в Supabase сначала уводит прошлую версию в
+   отдельную таблицу (см. триггер gamelife_save_history в SYNC_SQL) — это
+   подстраховка независимо от того, уцелел ли где-то localStorage. */
+async function listSaveHistory() {
+  const res = await supaFetch(
+    `/rest/v1/gamelife_saves_history?user_id=eq.${encodeURIComponent(syncCfg.userId)}&select=id,device,saved_at&order=saved_at.desc&limit=30`,
+    { method: 'GET' });
+  if (!res.ok) throw new Error(await errorText(res));
+  return res.json();
+}
+async function fetchSaveHistoryItem(id) {
+  const res = await supaFetch(`/rest/v1/gamelife_saves_history?id=eq.${encodeURIComponent(id)}&select=data`, { method: 'GET' });
+  if (!res.ok) throw new Error(await errorText(res));
+  const rows = await res.json();
+  return rows[0] || null;
+}
+async function restoreFromHistory(id) {
+  const item = await fetchSaveHistoryItem(id);
+  if (!item) throw new Error('Эта версия больше недоступна');
+  applyRemoteState(item.data);
+  const row = await pushRemote();
+  markSynced(row);
+}
+
+function historyRowHtml(h) {
+  const when = fmtRelTime(Date.parse(h.saved_at));
+  const exact = new Date(h.saved_at).toLocaleString('ru-RU');
+  return `<div class="sum-row">
+    <span title="${esc(exact)}">${esc(when)}${h.device ? ' · ' + esc(h.device) : ''}</span>
+    <button type="button" class="btn ghost small" data-restore-history="${h.id}">Восстановить</button>
+  </div>`;
+}
+
+function openHistoryModal() {
+  const body = `<div id="historyList"><div class="text-dim" style="font-size:12.5px;">Загрузка…</div></div>`;
+  openModal('История сохранений', body, async modal => {
+    const listEl = modal.querySelector('#historyList');
+    try {
+      const items = await listSaveHistory();
+      if (!items.length) {
+        listEl.innerHTML = `<div class="text-dim" style="font-size:12.5px;">Пока пусто — история появится после первых нескольких синхронизаций.</div>`;
+        return;
+      }
+      listEl.innerHTML = `<div class="summary-list">${items.map(historyRowHtml).join('')}</div>`;
+      listEl.querySelectorAll('[data-restore-history]').forEach(b => b.addEventListener('click', () => {
+        const id = b.dataset.restoreHistory;
+        confirmAction('Вернуть состояние на эту версию? Текущее перед этим сохранится в резервную копию браузера на случай ошибки.', async () => {
+          b.disabled = true;
+          try {
+            await restoreFromHistory(id);
+            closeModal();
+            toast('Прогресс восстановлен', 'green');
+          } catch (err) {
+            toast('Не удалось восстановить: ' + err.message, 'red');
+            b.disabled = false;
+          }
+        });
+      }));
+    } catch (err) {
+      listEl.innerHTML = `<div class="text-dim" style="font-size:12.5px;">Не удалось загрузить: ${esc(err.message)}. Если история ещё не подключена — обнови SQL в разделе синхронизации (кнопка «Скопировать код») и выполни его в Supabase заново.</div>`;
+    }
+  });
+}
+
 /* Есть ли в состоянии хоть что-то настоящее — задачи, финансы, дневник и т.д.
    Нужно, чтобы отличить «реально пустой прогресс» от «переустановил
    приложение / почистил браузер, хранилище обнулилось» — оба случая
@@ -511,7 +576,58 @@ begin
 end;
 $$;
 
-grant execute on function public.gamelife_agent_add(text, text, jsonb) to anon, authenticated;`;
+grant execute on function public.gamelife_agent_add(text, text, jsonb) to anon, authenticated;
+
+-- История сохранений: перед каждой перезаписью строки прошлая версия
+-- уходит сюда — подстраховка на случай ошибки синхронизации (даже ещё не
+-- найденной), а не только на удачно уцелевший localStorage на устройстве.
+-- Хранится последние 30 версий на пользователя, старые чистятся сами.
+create table if not exists public.gamelife_saves_history (
+  id       uuid primary key default gen_random_uuid(),
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  data     jsonb not null,
+  device   text,
+  saved_at timestamptz not null default now()
+);
+
+alter table public.gamelife_saves_history enable row level security;
+
+drop policy if exists "own history" on public.gamelife_saves_history;
+create policy "own history" on public.gamelife_saves_history
+  for select to authenticated
+  using (auth.uid() = user_id);
+-- пишет и чистит только функция ниже (security definer) — обычным
+-- пользователям вставка/удаление истории не нужны и не даны политикой
+
+create index if not exists gamelife_saves_history_user_saved_idx
+  on public.gamelife_saves_history (user_id, saved_at desc);
+
+create or replace function public.gamelife_save_history()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if old.data is not null and old.data is distinct from new.data then
+    insert into public.gamelife_saves_history (user_id, data, device, saved_at)
+    values (old.user_id, old.data, old.device, old.updated_at);
+
+    delete from public.gamelife_saves_history
+    where id in (
+      select id from public.gamelife_saves_history
+      where user_id = old.user_id
+      order by saved_at desc
+      offset 30
+    );
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists gamelife_save_history on public.gamelife_saves;
+create trigger gamelife_save_history before update
+  on public.gamelife_saves
+  for each row execute function public.gamelife_save_history();`;
 
 /* ---- Карточка синхронизации в Настройках -------------------------------------- */
 function syncCardHtml() {
@@ -600,6 +716,15 @@ function syncActiveHtml() {
       <button class="btn primary" id="syncNowBtn">${icon('cloud',15)} Синхронизировать сейчас</button>
       <button class="btn ghost" id="syncOutBtn">Выйти на этом устройстве</button>
     </div>
+
+    <hr class="hr">
+    <div class="card-title" style="margin-bottom:8px;">История сохранений</div>
+    <p class="text-dim" style="font-size:12.5px;line-height:1.5;margin:0 0 10px;">
+      Каждый раз, когда прогресс сохраняется в облако, прошлая версия остаётся здесь —
+      подстраховка на случай, если синхронизация что-то перепутает. Хранятся последние 30 версий,
+      восстановить можно на любую из них.
+    </p>
+    <button class="btn ghost small" id="showHistoryBtn">${icon('clock',15)} Посмотреть историю</button>
 
     <hr class="hr">
     <div class="card-title" style="margin-bottom:8px;">Распознавание еды по фото</div>
@@ -797,6 +922,9 @@ function bindSyncCard(root) {
 
   const nowBtn = root.querySelector('#syncNowBtn');
   if (nowBtn) nowBtn.addEventListener('click', async () => { await syncNow(true); renderAll(); });
+
+  const historyBtn = root.querySelector('#showHistoryBtn');
+  if (historyBtn) historyBtn.addEventListener('click', () => openHistoryModal());
 
   const autoBox = root.querySelector('#syncAuto');
   if (autoBox) autoBox.addEventListener('change', e => {
