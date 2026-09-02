@@ -70,35 +70,86 @@ function financeCategoryMonth(category, monthKey) {
 }
 function financeAccount(id) { return state.finance.accounts.find(a => a.id === id); }
 
-/* ---- Сон ---------------------------------------------------------------
-   Оценка ночи — не игровые очки, а просто понятная сводка: насколько
-   длительность попала в норму + (если указана) насколько хорошо
-   субъективно спалось. Без нормы (targetHours) есть смысл сравнивать
-   только с 8 часами — общепринятый ориентир для взрослого. */
+/* ---- Сон -----------------------------------------------------------------
+   Оценка ночи (0–100) собрана из трёх составляющих — по той же схеме, что
+   публично описывают Oura и SleepScore Labs (у обоих оценка — сумма
+   именованных «вкладов», а не одно чёрное число): длительность, режим
+   (регулярность отбоя) и самочувствие. Настоящие носимые трекеры добавляют
+   ещё фазы сна и пульс — у нас таких данных нет, оценка честно построена
+   только на том, что реально вводит человек.
+
+   - Длительность (вес 50): коридоры «оптимально»/«приемлемо» вокруг личной
+     нормы (targetHours) — как у National Sleep Foundation (Hirshkowitz et
+     al., 2015): полный балл в ±1 ч от нормы, ноль — на границе ±3 ч.
+   - Режим (вес 25, если есть история): насколько время отбоя сегодня
+     отличается от обычного времени за последние ночи — тот самый параметр
+     «Timing/regularity», который Oura считает отдельным вкладом в оценку,
+     потому что нерегулярный сон вреден даже при достаточной длительности.
+   - Самочувствие (вес 25, если оценено): самооценка «как спалось», 1–5.
+
+   Если каких-то составляющих ещё нет (мало истории для режима, не оценено
+   самочувствие) — их вес честно перераспределяется на то, что есть, а не
+   тянет оценку к нулю. */
 const SLEEP_FALL_ASLEEP_MIN = 15; // «обычно человек засыпает за столько» — не считаем это время сном
 
 function sleepDurationScore(durationMin, targetHours) {
   const targetMin = targetHours * 60;
   const diff = Math.abs(durationMin - targetMin);
-  // на границе ±180 минут от нормы оценка длительности уходит в ноль
-  return clamp(100 - diff * (100 / 180), 0, 100);
+  const optimal = 60, acceptable = 180; // ±1ч — полный балл, ±3ч — ноль
+  if (diff <= optimal) return 100;
+  if (diff >= acceptable) return 0;
+  return 100 * (1 - (diff - optimal) / (acceptable - optimal));
 }
-function computeSleepScore(durationMin, targetHours, quality) {
-  const durationScore = sleepDurationScore(durationMin, targetHours);
-  if (!quality) return Math.round(durationScore);
-  const qualityScore = (quality / 5) * 100;
-  return Math.round(durationScore * 0.7 + qualityScore * 0.3);
+
+/* Минуты от полудня — так типичное время отбоя (21:00–03:00) не рвётся
+   через полночь пополам, как было бы при отсчёте от 00:00. */
+function clockMinutesSinceNoon(iso) {
+  const d = new Date(iso);
+  return ((d.getHours() * 60 + d.getMinutes()) - 12 * 60 + 1440) % 1440;
 }
+function sleepTimingScore(bedAtISO, priorBedAtList) {
+  if (!priorBedAtList || priorBedAtList.length < 3) return null; // мало истории — рано судить о режиме
+  const cur = clockMinutesSinceNoon(bedAtISO);
+  const priorMins = priorBedAtList.map(clockMinutesSinceNoon);
+  const avg = priorMins.reduce((a, b) => a + b, 0) / priorMins.length;
+  let diff = Math.abs(cur - avg);
+  diff = Math.min(diff, 1440 - diff); // по кругу — 23:55 и 00:05 отличаются на 10 минут, не на сутки
+  const grace = 20, zero = 120; // ±20 мин от привычного — полный балл, ±2ч — ноль
+  if (diff <= grace) return 100;
+  if (diff >= zero) return 0;
+  return 100 * (1 - (diff - grace) / (zero - grace));
+}
+
+/* Возвращает и итог, и разбивку по составляющим — чтобы можно было
+   показать не только число, но и откуда оно взялось. */
+function computeSleepScore(durationMin, targetHours, quality, bedAtISO, priorBedAtList) {
+  const parts = [{ key: 'duration', label: 'Длительность', weight: 50, value: Math.round(sleepDurationScore(durationMin, targetHours)) }];
+  const timing = sleepTimingScore(bedAtISO, priorBedAtList);
+  if (timing != null) parts.push({ key: 'timing', label: 'Режим', weight: 25, value: Math.round(timing) });
+  if (quality) parts.push({ key: 'quality', label: 'Самочувствие', weight: 25, value: Math.round((quality / 5) * 100) });
+
+  const totalWeight = parts.reduce((s, p) => s + p.weight, 0);
+  const score = Math.round(parts.reduce((s, p) => s + p.value * p.weight, 0) / totalWeight);
+  return { score, parts };
+}
+
 function fmtDuration(min) {
   const h = Math.floor(min / 60), m = Math.round(min % 60);
   return `${h}ч ${String(m).padStart(2, '0')}м`;
 }
-function sleepAdvice(durationMin, targetHours) {
+function sleepScoreBreakdownText(parts) {
+  return parts.map(p => `${p.label.toLowerCase()} ${p.value}`).join(', ');
+}
+function sleepAdvice(durationMin, targetHours, parts) {
   const targetMin = targetHours * 60;
   const diffMin = Math.round(targetMin - durationMin);
-  if (Math.abs(diffMin) <= 20) return 'Почти точно в норму — так держать.';
-  if (diffMin > 0) return `Не хватило примерно ${fmtDuration(diffMin)} до нормы в ${targetHours} ч — стоит лечь пораньше.`;
-  return `Спал(а) на ${fmtDuration(-diffMin)} больше нормы в ${targetHours} ч.`;
+  const bits = [];
+  if (Math.abs(diffMin) <= 20) bits.push('Длительность почти точно в норму.');
+  else if (diffMin > 0) bits.push(`Не хватило примерно ${fmtDuration(diffMin)} до нормы в ${targetHours} ч.`);
+  else bits.push(`Спал(а) на ${fmtDuration(-diffMin)} больше нормы в ${targetHours} ч.`);
+  const timing = (parts || []).find(p => p.key === 'timing');
+  if (timing && timing.value < 60) bits.push('Время отбоя сильно скачет ото дня ко дню — режим тоже влияет на оценку.');
+  return bits.join(' ');
 }
 function sleepAvg(entries, days, field) {
   const cutoff = todayStr();
@@ -107,4 +158,14 @@ function sleepAvg(entries, days, field) {
   const set = entries.filter(e => e.date >= from && e.date <= cutoff);
   if (!set.length) return 0;
   return set.reduce((s, e) => s + (e[field] || 0), 0) / set.length;
+}
+/* Время отбоя последних ночей до данной — вход для sleepTimingScore.
+   excludeId нужен при редактировании, чтобы ночь не сравнивала себя саму с собой. */
+function priorBedTimes(entries, beforeBedAtISO, excludeId) {
+  const beforeMs = new Date(beforeBedAtISO).getTime();
+  return entries
+    .filter(e => e.id !== excludeId && e.bedAt && new Date(e.bedAt).getTime() < beforeMs)
+    .sort((a, b) => new Date(b.bedAt) - new Date(a.bedAt))
+    .slice(0, 7)
+    .map(e => e.bedAt);
 }

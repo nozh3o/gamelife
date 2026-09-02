@@ -89,7 +89,7 @@ function sleepRowHtml(e) {
   return `<div class="row-item">
     <span class="ic-badge">${icon('moon', 17)}</span>
     <div class="main">
-      <div class="title">${fmtDuration(e.durationMin)} <span class="chip ${scoreChipClass(e.score)}">${e.score}</span></div>
+      <div class="title">${fmtDuration(e.durationMin)} <span class="chip ${scoreChipClass(e.score)}" title="${esc(sleepScoreBreakdownText(e.scoreParts || []))}">${e.score}</span></div>
       <div class="meta">
         <span>${fmtDateHuman(e.date)}</span>
         <span>${fmtTimeOfISO(e.bedAt)} → ${fmtTimeOfISO(e.wokeAt)}</span>
@@ -258,25 +258,26 @@ function openSleepForm(id, prefill) {
 
       const target = state.sleep.profile.targetHours || 8;
       const quality = qualityInput.value ? Number(qualityInput.value) : null;
-      const score = computeSleepScore(durationMin, target, quality);
+      const priors = priorBedTimes(state.sleep.entries, bedAt.toISOString(), existing && existing.id);
+      const { score, parts } = computeSleepScore(durationMin, target, quality, bedAt.toISOString(), priors);
       const note = String(new FormData(form).get('note') || '').trim();
 
       mutate(() => {
         if (existing) {
           Object.assign(existing, {
             date: dateStr(wokeAt), bedAt: bedAt.toISOString(), asleepAt: asleepAt.toISOString(),
-            wokeAt: wokeAt.toISOString(), durationMin, quality, note, score,
+            wokeAt: wokeAt.toISOString(), durationMin, quality, note, score, scoreParts: parts,
           });
         } else {
           state.sleep.entries.push({
             id: uid(), date: dateStr(wokeAt), bedAt: bedAt.toISOString(), asleepAt: asleepAt.toISOString(),
-            wokeAt: wokeAt.toISOString(), durationMin, quality, note, score, createdAt: nowISO(),
+            wokeAt: wokeAt.toISOString(), durationMin, quality, note, score, scoreParts: parts, createdAt: nowISO(),
           });
           addLog('🌙', `Сон: ${fmtDuration(durationMin)}, оценка ${score}`);
         }
         if (closesActive) state.sleep.active = null;
       });
-      toast(`Оценка ночи: ${score} · ${sleepAdvice(durationMin, target)}`, score >= 70 ? 'green' : '');
+      toast(`Оценка ночи: ${score} (${sleepScoreBreakdownText(parts)}) · ${sleepAdvice(durationMin, target, parts)}`, score >= 70 ? 'green' : '');
       closeModal();
     });
   });
