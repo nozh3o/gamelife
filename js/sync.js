@@ -319,6 +319,24 @@ function mergeAccountsIfDefault(target, source) {
   return false;
 }
 
+/* Объединяет два массива по id вместо выбора одной стороны целиком — иначе
+   при конфликте «менялось и там, и там» (см. ниже) элемент, добавленный на
+   проигравшей по общей метке времени стороне, просто исчезал бы, даже если
+   на другой стороне о нём никогда и не знали. Здесь ни один id не теряется:
+   берём объединение, а при совпадении id побеждает версия из preferred
+   (более свежая по общей метке времени сторона — её правка вероятнее новее). */
+function mergeArraysById(preferred, other) {
+  const a = Array.isArray(preferred) ? preferred : [];
+  const b = Array.isArray(other) ? other : [];
+  if (!a.length) return b.slice();
+  if (!b.length) return a.slice();
+  const byId = new Map();
+  for (const item of b) if (item && item.id != null) byId.set(item.id, item);
+  for (const item of a) if (item && item.id != null) byId.set(item.id, item); // preferred побеждает при совпадении id
+  const withoutId = [...a, ...b].filter(item => item && item.id == null);
+  return [...byId.values(), ...withoutId];
+}
+
 /* ---- Основной алгоритм ---------------------------------------------------- */
 async function syncNow(manual = false) {
   if (!syncSignedIn() || syncBusy) return;
@@ -405,30 +423,35 @@ async function syncNow(manual = false) {
       if (manual) toast('Всё уже синхронизировано', 'green');
       return;
     }
-    if (remoteChanged && !localChanged) {
-      applyRemoteState(remote.data);
-      markSynced({ updated_at: remote.updated_at });
-      toast(`Подтянут прогресс с устройства «${remote.device || 'другое'}»`, 'green');
-      return;
-    }
-    if (localChanged && !remoteChanged) {
-      const row = await pushRemote();
-      markSynced(row);
-      if (manual) toast('Изменения выгружены', 'green');
-      return;
-    }
 
-    // менялось и там, и там — не спрашиваем, просто побеждает более свежая версия
-    // (местная копия всё равно уходит в резервную копию перед перезаписью — applyRemoteState)
-    if (remoteAt > localAt) {
-      applyRemoteState(remote.data);
-      markSynced({ updated_at: remote.updated_at });
-      toast(`Подтянута более новая версия с «${remote.device || 'другого устройства'}»`, 'green');
-    } else {
-      const row = await pushRemote();
-      markSynced(row);
-      toast('Оставлена версия с этого устройства (она новее)', 'green');
+    // Хоть одна сторона изменилась — раньше отсюда либо целиком применялась
+    // облачная версия, либо целиком выгружалась локальная, либо (если
+    // менялись обе) целиком побеждала более свежая по общей метке времени.
+    // Всё это по факту означало «взять один снимок целиком и выбросить
+    // другой» — а всё, чего не было в выбранном снимке (например, задачу,
+    // которую только что добавили и она не успела улететь в облако, или
+    // которую параллельно дописало другое устройство), молча теряли. Даже
+    // когда изменилась вроде бы только одна сторона: если два устройства
+    // синхронизировались почти одновременно, вторая запись в облако могла
+    // тихо перезаписать первую без всякого слияния — и следующее устройство,
+    // которое просто «подтягивало» изменения, получало уже урезанную версию.
+    // Поэтому вместо выбора снимка целиком объединяем каждую категорию
+    // (задачи, привычки, цели, счета и т.д.) по id — ни один элемент,
+    // добавленный на любой стороне, больше не пропадает; при совпадении id
+    // побеждает версия из более свежей по общей метке времени стороны.
+    const localNewer = localAt >= remoteAt;
+    const base = localNewer ? state : remote.data;
+    const other = localNewer ? remote.data : state;
+    const merged = JSON.parse(JSON.stringify(base || {}));
+    for (const path of [...CATEGORY_PATHS, ['finance', 'accounts'], ['log']]) {
+      setPath(merged, path, mergeArraysById(getPath(base, path), getPath(other, path)));
     }
+    applyRemoteState(merged);
+    const row = await pushRemote();
+    markSynced(row);
+    toast(localChanged && remoteChanged
+      ? 'Объединил изменения с обоих устройств — ничего не потерялось'
+      : remoteChanged ? `Подтянут прогресс с устройства «${remote.device || 'другое'}»` : 'Изменения выгружены', 'green');
   } catch (e) {
     console.warn('Синхронизация не удалась:', e);
     setSyncStatus('error', e.message || 'Ошибка синхронизации');
