@@ -65,6 +65,72 @@ function applyAgentItem(item) {
       fat: Number(p.fat) || 0, carbs: Number(p.carbs) || 0, source: 'agent',
     });
     toast(`Клод добавил приём пищи: ${title}`, 'gold');
+  } else if (item.kind === 'task') {
+    const title = String(p.title || '').trim();
+    if (!title) return;
+    state.todos.push({
+      id: uid(), title, date: p.date || todayStr(),
+      note: String(p.note || '').trim(), done: false, doneAt: null, createdAt: nowISO(),
+    });
+    addLog('➕', `Задача создана Клодом: ${title}`);
+    toast(`Клод добавил задачу: ${title}`, 'gold');
+  } else if (item.kind === 'journal') {
+    const date = p.date || todayStr();
+    const wins = Array.isArray(p.wins) ? p.wins.map(s => String(s).trim()).filter(Boolean) : [];
+    const gratitude = Array.isArray(p.gratitude) ? p.gratitude.map(s => String(s).trim()).filter(Boolean) : [];
+    const text = String(p.text || '').trim();
+    const mood = Number(p.mood) || 3;
+    if (!wins.length && !gratitude.length && !text) return;
+    const existing = state.journal.find(j => j.date === date);
+    if (existing) Object.assign(existing, { mood, wins, gratitude, text, updatedAt: nowISO() });
+    else state.journal.unshift({ id: uid(), date, mood, wins, gratitude, text, createdAt: nowISO() });
+    addLog('📔', 'Запись в журнале от Клода');
+    toast('Клод сделал запись в журнале', 'gold');
+  } else if (item.kind === 'goal') {
+    const title = String(p.title || '').trim();
+    if (!title) return;
+    const hasTarget = p.target != null && Number(p.target) > 0;
+    state.goals.push({
+      id: uid(), title, note: String(p.note || '').trim(),
+      kind: hasTarget ? 'numeric' : 'boolean',
+      target: hasTarget ? Number(p.target) : 1,
+      unit: p.unit || '', milestones: [],
+      moneyReward: Number(p.moneyReward) || 0, deadline: p.deadline || null,
+      current: 0, progressLog: [], done: false, doneAt: null, createdAt: nowISO(),
+    });
+    addLog('🎯', `Цель создана Клодом: ${title}`);
+    toast(`Клод добавил цель: ${title}`, 'gold');
+  } else if (item.kind === 'wish') {
+    const title = String(p.title || '').trim();
+    if (!title) return;
+    state.wishes.push({
+      id: uid(), title, note: String(p.note || '').trim(), icon: 'sparkle', image: null,
+      done: false, doneAt: null, createdAt: nowISO(),
+    });
+    addLog('🌠', `Желание добавлено Клодом: ${title}`);
+    toast(`Клод добавил желание: ${title}`, 'gold');
+  } else if (item.kind === 'habit_log') {
+    const name = String(p.name || '').trim().toLowerCase();
+    const h = state.habits.find(x => x.title.trim().toLowerCase() === name);
+    if (!h) { toast(`Клод не нашёл привычку «${p.name}»`, 'red'); return; }
+    const today = todayStr();
+    if (h.lastDay !== today) { h.lastDay = today; h.todayCount = 0; }
+    if (p.direction === 'down') { h.downCount = (h.downCount || 0) + 1; addLog('⚠️', `Сорвался на «${h.title}» (Клод)`); }
+    else { h.upCount = (h.upCount || 0) + 1; h.todayCount = (h.todayCount || 0) + 1; addLog('🔁', `Привычка «${h.title}» отмечена Клодом`); }
+    h.history = h.history || [];
+    h.history.push({ date: today, dir: p.direction === 'down' ? -1 : 1 });
+    if (h.history.length > 400) h.history = h.history.slice(-400);
+    toast(`Клод отметил привычку: ${h.title}`, 'gold');
+  } else if (item.kind === 'daily_done') {
+    const name = String(p.name || '').trim().toLowerCase();
+    const d = state.dailies.find(x => x.title.trim().toLowerCase() === name);
+    if (!d) { toast(`Клод не нашёл ежедневку «${p.name}»`, 'red'); return; }
+    const today = todayStr();
+    if (!d.history.includes(today)) {
+      d.history.push(today); d.history.sort(); recomputeStreak(d);
+      addLog('📅', `Ежедневка выполнена Клодом: ${d.title} (стрик ${d.streak})`);
+    }
+    toast(`Клод выполнил ежедневку: ${d.title}`, 'gold');
   }
 }
 

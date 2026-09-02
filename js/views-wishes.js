@@ -86,7 +86,7 @@ function bindWishHandlers() {
     const w = state.wishes.find(x => x.id === b.dataset.wishDel);
     if (!w) return;
     confirmAction(`Удалить желание «${w.title}»?`, () => {
-      mutate(() => { state.wishes = state.wishes.filter(x => x.id !== w.id); });
+      mutate(() => { state.wishes = state.wishes.filter(x => x.id !== w.id); markDeleted(w.id); });
     });
   }));
 }

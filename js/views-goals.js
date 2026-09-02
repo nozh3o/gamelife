@@ -127,7 +127,7 @@ function bindGoalHandlers() {
     const g = state.goals.find(x => x.id === b.dataset.goalDel);
     if (!g) return;
     confirmAction(`Удалить цель «${g.title}»?`, () => {
-      mutate(() => { state.goals = state.goals.filter(x => x.id !== b.dataset.goalDel); });
+      mutate(() => { state.goals = state.goals.filter(x => x.id !== b.dataset.goalDel); markDeleted(b.dataset.goalDel); });
     });
   }));
 }

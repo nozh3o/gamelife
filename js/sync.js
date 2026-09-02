@@ -325,9 +325,14 @@ function mergeAccountsIfDefault(target, source) {
    на другой стороне о нём никогда и не знали. Здесь ни один id не теряется:
    берём объединение, а при совпадении id побеждает версия из preferred
    (более свежая по общей метке времени сторона — её правка вероятнее новее). */
-function mergeArraysById(preferred, other) {
-  const a = Array.isArray(preferred) ? preferred : [];
-  const b = Array.isArray(other) ? other : [];
+/* deleted — набор id, которые кто-то из сторон уже удалил (см. markDeleted
+   в state.js). Без этого фильтра удалённый на одном устройстве элемент,
+   который другая сторона ещё не успела «забыть» (её собственный push с
+   удалением до этого не дошёл), просто воскресал бы обратно через union. */
+function mergeArraysById(preferred, other, deleted) {
+  const skip = deleted instanceof Set ? deleted : new Set(deleted || []);
+  const a = (Array.isArray(preferred) ? preferred : []).filter(item => !item || item.id == null || !skip.has(item.id));
+  const b = (Array.isArray(other) ? other : []).filter(item => !item || item.id == null || !skip.has(item.id));
   if (!a.length) return b.slice();
   if (!b.length) return a.slice();
   const byId = new Map();
@@ -378,6 +383,17 @@ async function syncNow(manual = false) {
     // обнуляем и здесь, иначе шаги ниже, которые могут целиком принять
     // remote.data как новую локальную версию, притащат старую очередь назад
     if (remote.data) remote.data.agentInbox = [];
+
+    // объединяем «надгробия» удалений с обеих сторон ДО слияния категорий —
+    // именно из-за их отсутствия удалённое иногда возвращалось обратно
+    // (см. markDeleted в state.js и mergeArraysById ниже)
+    const deletedSet = new Set([
+      ...(Array.isArray(state.deletedIds) ? state.deletedIds : []),
+      ...(remote.data && Array.isArray(remote.data.deletedIds) ? remote.data.deletedIds : []),
+    ]);
+    const deletedList = [...deletedSet].slice(-2000);
+    state.deletedIds = deletedList;
+    if (remote.data) remote.data.deletedIds = deletedList;
 
     // «Удалить всё» в Настройках ставит одноразовую метку — тогда пустому
     // состоянию доверяем как есть (и категории ниже намеренно НЕ подмешиваем,
@@ -455,8 +471,9 @@ async function syncNow(manual = false) {
     const other = localNewer ? remote.data : state;
     const merged = JSON.parse(JSON.stringify(base || {}));
     for (const path of [...CATEGORY_PATHS, ['finance', 'accounts'], ['log']]) {
-      setPath(merged, path, mergeArraysById(getPath(base, path), getPath(other, path)));
+      setPath(merged, path, mergeArraysById(getPath(base, path), getPath(other, path), deletedSet));
     }
+    merged.deletedIds = deletedList;
     applyRemoteState(merged);
     const row = await pushRemote();
     markSynced(row);

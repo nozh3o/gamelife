@@ -88,7 +88,27 @@ function defaultState() {
     // очередь записей от Клода (через MCP-коннектор) — приходит с сервера через
     // синхронизацию, applyAgentItem() в main.js разбирает и сразу же очищает
     agentInbox: [],
+    // «надгробия» удалённых записей — синхронизация объединяет списки по id
+    // и сама по себе не умеет отличать «этого элемента никогда не было» от
+    // «он был и его удалили»; без этого списка удалённое иногда возвращалось
+    // обратно, если пришла версия с другого устройства/до синхронизации
+    // удаления. См. markDeleted() и применение в sync.js
+    deletedIds: [],
   };
+}
+
+/* Помечает id как удалённый — вызывать при каждом удалении элемента из любого
+   массива, который синхронизация объединяет по id (см. CATEGORY_PATHS
+   в sync.js). Без этого удалённое может «воскреснуть» при слиянии с
+   версией, где элемент ещё есть. Список подрезаем, чтобы не рос бесконечно —
+   расширенный этой границы старый id уже не «спасёт» от воскрешения, но два
+   тысячи последних удалений с большим запасом хватает на разумный интервал
+   между синхронизациями устройств. */
+function markDeleted(id) {
+  if (!id) return;
+  if (!Array.isArray(state.deletedIds)) state.deletedIds = [];
+  state.deletedIds.push(id);
+  if (state.deletedIds.length > 2000) state.deletedIds = state.deletedIds.slice(-2000);
 }
 
 /* ---- Загрузка / сохранение ------------------------------------------ */
@@ -153,7 +173,7 @@ function normalize(parsed, d) {
   if (!Array.isArray(s.nutrition.dictionary)) s.nutrition.dictionary = [];
 
   // массивы должны остаться массивами
-  for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log', 'agentInbox']) {
+  for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log', 'agentInbox', 'deletedIds']) {
     if (!Array.isArray(s[key])) s[key] = d[key];
   }
   // задачи теперь привязаны к дню — у старых записей без даты берём срок

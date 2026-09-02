@@ -176,6 +176,7 @@ function renderMealList(entries) {
       const e = state.nutrition.entries.find(x => x.id === b.dataset.mealDel);
       confirmAction(`Удалить «${e ? e.title : ''}» из дневника?`, () => mutate(() => {
         state.nutrition.entries = state.nutrition.entries.filter(x => x.id !== b.dataset.mealDel);
+        markDeleted(b.dataset.mealDel);
       }));
     }));
 }
@@ -441,6 +442,7 @@ function openDictPicker() {
     modal.querySelectorAll('[data-dict-del]').forEach(b => b.addEventListener('click', () => {
       mutate(() => {
         state.nutrition.dictionary = state.nutrition.dictionary.filter(x => x.id !== b.dataset.dictDel);
+        markDeleted(b.dataset.dictDel);
       });
       closeModal();
     }));

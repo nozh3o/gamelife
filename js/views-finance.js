@@ -87,6 +87,7 @@ function deleteTransaction(id) {
   if (!tx) return;
   applyTxEffect(tx, -1);
   state.finance.transactions = state.finance.transactions.filter(x => x.id !== id);
+  markDeleted(id);
 }
 
 /* ---- Экран ----------------------------------------------------------------- */
@@ -324,6 +325,8 @@ function deleteAccount(id) {
     `Удалить счёт «${a ? a.name : ''}»?${relatedCount ? ` Вместе с ним удалится ${relatedCount} ${plural(relatedCount, 'операция', 'операции', 'операций')}.` : ''}`,
     () => mutate(() => {
       state.finance.accounts = state.finance.accounts.filter(x => x.id !== id);
+      markDeleted(id);
+      state.finance.transactions.forEach(t => { if (t.accountId === id || t.toAccountId === id) markDeleted(t.id); });
       state.finance.transactions = state.finance.transactions.filter(t => t.accountId !== id && t.toAccountId !== id);
       if (financeAccountFilter === id) financeAccountFilter = '';
     }));
@@ -359,6 +362,7 @@ function renderBudgets() {
   wrap.querySelectorAll('[data-budget-del]').forEach(b => b.addEventListener('click', () => {
     confirmAction('Удалить лимит?', () => mutate(() => {
       state.finance.budgets = state.finance.budgets.filter(x => x.id !== b.dataset.budgetDel);
+      markDeleted(b.dataset.budgetDel);
     }));
   }));
 }

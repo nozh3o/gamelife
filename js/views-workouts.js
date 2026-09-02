@@ -123,7 +123,7 @@ function bindWorkoutHandlers() {
     const w = state.workouts.find(x => x.id === b.dataset.workoutDel);
     if (!w) return;
     confirmAction(`Удалить тренировку «${w.title || 'без названия'}» от ${fmtDateHuman(w.date)}?`, () => {
-      mutate(() => { state.workouts = state.workouts.filter(x => x.id !== w.id); });
+      mutate(() => { state.workouts = state.workouts.filter(x => x.id !== w.id); markDeleted(w.id); });
     });
   }));
 }

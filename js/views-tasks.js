@@ -309,7 +309,7 @@ function deleteTask(type, id) {
   const item = state[key].find(x => x.id === id);
   if (!item) return;
   confirmAction(`Удалить «${item.title}»? Историю и стрик восстановить будет нельзя.`, () => {
-    mutate(() => { state[key] = state[key].filter(x => x.id !== id); });
+    mutate(() => { state[key] = state[key].filter(x => x.id !== id); markDeleted(id); });
   });
 }
 

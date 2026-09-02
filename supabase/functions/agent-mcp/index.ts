@@ -98,12 +98,96 @@ const TOOLS = [
       required: ["title", "kcal"],
     },
   },
+  {
+    name: "add_task",
+    description: "Добавить задачу на день в приложение One (вкладка «Задачи»).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Что нужно сделать" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, по умолчанию сегодня" },
+        note: { type: "string", description: "Заметка, необязательно" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "add_journal_entry",
+    description: "Сделать запись в дневник дня приложения One: настроение, победы, благодарности, текст. Если запись на этот день уже есть — дополняет её.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Дата YYYY-MM-DD, по умолчанию сегодня" },
+        mood: { type: "number", description: "Настроение от 1 (плохо) до 5 (отлично)" },
+        text: { type: "string", description: "Свободный текст о дне" },
+        wins: { type: "array", items: { type: "string" }, description: "Список побед за день" },
+        gratitude: { type: "array", items: { type: "string" }, description: "За что благодарен сегодня" },
+      },
+    },
+  },
+  {
+    name: "add_goal",
+    description: "Создать цель в приложении One. Если указано число (target) — цель числовая (копить прогресс), иначе простая (сделано/не сделано).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название цели" },
+        note: { type: "string", description: "Зачем эта цель, необязательно" },
+        target: { type: "number", description: "Числовая цель, например 500000 — необязательно" },
+        unit: { type: "string", description: "Единица измерения: ₸, км, книг — вместе с target" },
+        moneyReward: { type: "number", description: "Денежная награда за достижение, необязательно" },
+        deadline: { type: "string", description: "Дедлайн YYYY-MM-DD, необязательно" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "add_wish",
+    description: "Добавить желание в карту желаний приложения One.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Что хочется" },
+        note: { type: "string", description: "Зачем это, необязательно" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "log_habit",
+    description: "Отметить привычку в приложении One по названию — привычка должна уже существовать в приложении.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Точное или похожее название привычки, как она называется в приложении" },
+        direction: { type: "string", enum: ["up", "down"], description: "up — сделал (по умолчанию), down — сорвался" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "complete_daily",
+    description: "Отметить ежедневку выполненной на сегодня в приложении One по названию — ежедневка должна уже существовать в приложении.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Точное или похожее название ежедневки, как она называется в приложении" },
+      },
+      required: ["name"],
+    },
+  },
 ];
 
 const TOOL_KIND: Record<string, string> = {
   add_transaction: "transaction",
   add_workout: "workout",
   add_meal: "meal",
+  add_task: "task",
+  add_journal_entry: "journal",
+  add_goal: "goal",
+  add_wish: "wish",
+  log_habit: "habit_log",
+  complete_daily: "daily_done",
 };
 
 function rpcResult(id: unknown, result: unknown) {
@@ -138,7 +222,14 @@ function toolResultText(name: string, args: Record<string, unknown>) {
     return `${args.type === "income" ? "Доход" : "Расход"} ${args.amount}${args.category ? " · " + args.category : ""}`;
   }
   if (name === "add_workout") return `Тренировка «${args.title}»`;
-  return `Приём пищи «${args.title}»`;
+  if (name === "add_meal") return `Приём пищи «${args.title}»`;
+  if (name === "add_task") return `Задача «${args.title}»`;
+  if (name === "add_journal_entry") return `Запись в дневнике`;
+  if (name === "add_goal") return `Цель «${args.title}»`;
+  if (name === "add_wish") return `Желание «${args.title}»`;
+  if (name === "log_habit") return `Привычка «${args.name}»`;
+  if (name === "complete_daily") return `Ежедневка «${args.name}»`;
+  return String(args.title || args.name || "");
 }
 
 Deno.serve(async (req: Request) => {

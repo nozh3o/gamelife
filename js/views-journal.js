@@ -97,6 +97,7 @@ function renderJournal() {
   list.querySelectorAll('[data-j-del]').forEach(b => b.addEventListener('click', () => {
     confirmAction('Удалить запись из журнала?', () => mutate(() => {
       state.journal = state.journal.filter(x => x.id !== b.dataset.jDel);
+      markDeleted(b.dataset.jDel);
     }));
   }));
 }
