@@ -1,5 +1,5 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v40';
+const CACHE = 'gamelife-v42';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',
@@ -10,7 +10,7 @@ const CORE = [
   './js/food-db.js', './js/views-nutrition.js',
   './js/views-finance.js',
   './js/views-stats.js', './js/views-journal.js',
-  './js/views-settings.js', './js/sync.js', './js/main.js',
+  './js/views-settings.js', './js/sync.js', './js/reminders.js', './js/main.js',
 ];
 const EXTRA = [
   './icons/icon-192.png', './icons/icon-512.png',
@@ -64,4 +64,15 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
+});
+
+/* Клик по напоминанию (js/reminders.js) — фокусируем открытую вкладку
+   приложения или открываем новую, если его нигде нет. */
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of clientsList) if ('focus' in c) return c.focus();
+    if (self.clients.openWindow) return self.clients.openWindow('./');
+  })());
 });

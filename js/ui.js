@@ -74,6 +74,7 @@ const ICONS = {
   chevronLeft: '<path d="M15 5l-7 7 7 7"/>',
   chevronRight: '<path d="M9 5l7 7-7 7"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.4 11.4a6.6 6.6 0 0 0 13.2 0"/><path d="M12 18v3"/><path d="M8.6 21h6.8"/>',
+  bell: '<path d="M6 10.5a6 6 0 0 1 12 0c0 4.2 1.3 5.7 2 6.5H4c.7-.8 2-2.3 2-6.5z"/><path d="M9.7 20a2.3 2.3 0 0 0 4.6 0"/>',
   mood1: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5 17.5Q12 13 16.5 17.5"/>',
   mood2: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8 16.5Q12 15 16 16.5"/>',
   mood3: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M8.5 16.2h7"/>',

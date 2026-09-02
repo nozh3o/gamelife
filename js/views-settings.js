@@ -43,6 +43,11 @@ function renderSettings() {
         <label class="switch mt8"><input type="checkbox" id="confettiToggle" ${state.settings.confetti ? 'checked' : ''}><span>${icon('sparkle',14)} Конфетти на важных событиях</span></label>
       </div>
 
+    <div class="card mt16">
+      <div class="card-title"><span>${icon('bell',16)} Напоминания</span></div>
+      ${remindersCardHtml()}
+    </div>
+
     <div class="grid cols-2 mt16">
       <div class="card">
         <div class="card-title">Резервная копия</div>
@@ -164,6 +169,9 @@ function bindSettings() {
     saveState();
     if (e.target.checked) confetti(30);
   });
+
+  // напоминания
+  bindRemindersCard(root);
 
   // синхронизация
   bindSyncCard(root);

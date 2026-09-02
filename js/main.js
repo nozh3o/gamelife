@@ -10,6 +10,7 @@ function mutate(fn) {
   fn();
   saveState();
   renderAll();
+  if (typeof checkBudgetAlerts === 'function') checkBudgetAlerts();
 }
 
 /* ---- Очередь записей от Клода (MCP-коннектор) ---------------------------
@@ -185,6 +186,7 @@ function init() {
   applyTheme();
   registerServiceWorker();
   initSync();
+  initReminders();
 
   state.dailies.forEach(recomputeStreak);
   runCron();

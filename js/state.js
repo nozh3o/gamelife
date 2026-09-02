@@ -51,7 +51,12 @@ function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 function defaultState() {
   return {
     version: 2,
-    settings: { theme: 'dark', accent: 'violet', currency: '₸', sound: true, confetti: true },
+    settings: {
+      theme: 'dark', accent: 'violet', currency: '₸', sound: true, confetti: true,
+      // локальные напоминания — время и флаги хранятся тут же, устройство само
+      // решает, разрешены ли системные уведомления (см. js/reminders.js)
+      reminders: { enabled: false, evening: true, eveningTime: '20:00', budgetAlerts: true },
+    },
     player: {
       name: 'Игрок', avatar: '🧙',
       createdAt: nowISO(),
