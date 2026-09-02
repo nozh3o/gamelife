@@ -593,6 +593,7 @@ declare
   v_user_id uuid;
   v_hash text;
   v_item jsonb;
+  v_recent_dupe boolean;
 begin
   v_hash := encode(digest(p_token, 'sha256'), 'hex');
 
@@ -602,6 +603,22 @@ begin
   end if;
 
   update public.agent_tokens set last_used_at = now() where token_hash = v_hash;
+
+  -- защита от задвоения: если точно такая же запись (тип + содержимое) уже
+  -- лежит в очереди за последние 3 минуты — не добавляем ещё раз. Спасает
+  -- от повторных «попробуй ещё раз» и случайных повторных вызовов инструмента.
+  select exists (
+    select 1
+    from public.gamelife_saves s, jsonb_array_elements(coalesce(s.data->'agentInbox', '[]'::jsonb)) item
+    where s.user_id = v_user_id
+      and item->>'kind' = p_kind
+      and item->'payload' = p_payload
+      and (item->>'createdAt')::timestamptz > now() - interval '3 minutes'
+  ) into v_recent_dupe;
+
+  if v_recent_dupe then
+    return;
+  end if;
 
   v_item := jsonb_build_object(
     'id', gen_random_uuid()::text,
