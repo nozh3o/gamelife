@@ -377,7 +377,7 @@ function openBudgetForm() {
         <select name="category">${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>
       </label>
       <label class="field" style="grid-column:1/-1;">Лимит в месяц (${esc(state.settings.currency)})
-        <input type="number" name="limit" min="1" step="1" required autofocus>
+        <input type="number" name="limit" min="0.01" step="0.01" required autofocus>
       </label>
       <div class="form-actions" style="grid-column:1/-1;">
         <button type="button" class="btn ghost" data-cancel>Отмена</button>

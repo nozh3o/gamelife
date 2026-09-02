@@ -98,10 +98,14 @@ function renderStaticIcons(root = document) {
 function esc(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+/* Круглые суммы показываем без копеек/тиынов, а если они есть — не теряем:
+   Math.round(...*100)/100 только чистит мусор плавающей точки (0.1+0.2 и т.п.),
+   а не округляет реальные копейки. */
 function fmtMoney(n) {
   const cur = state.settings.currency || '₸';
   const sign = n < 0 ? '−' : '';
-  return sign + Math.abs(Math.round(n)).toLocaleString('ru-RU') + ' ' + cur;
+  const clean = Math.round(Math.abs(n) * 100) / 100;
+  return sign + clean.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ' + cur;
 }
 function fmtNum(n) { return Math.round(n).toLocaleString('ru-RU'); }
 function plural(n, one, few, many) {
