@@ -335,6 +335,11 @@ function openTaskForm(type, id) {
         </div>
       </div>` : ''}
 
+      ${type === 'todo' ? `
+      <label class="field" style="grid-column: 1/-1;">Дата
+        <input type="date" name="date" value="${esc(t.date || curTaskDate())}">
+      </label>` : ''}
+
       ${type === 'daily' ? `
       <div class="field" style="grid-column: 1/-1;">Дни недели
         <div class="days-picker">
@@ -374,9 +379,13 @@ function openTaskForm(type, id) {
           else state.dailies.push({ id: uid(), ...data, history: [], streak: 0, best: 0, createdAt: nowISO() });
         }
         if (type === 'todo') {
-          const data = { ...base };
+          const date = String(f.get('date') || '').trim() || curTaskDate();
+          const data = { ...base, date };
           if (existing) Object.assign(existing, data);
-          else state.todos.push({ id: uid(), ...data, date: curTaskDate(), done: false, doneAt: null, createdAt: nowISO() });
+          else state.todos.push({ id: uid(), ...data, done: false, doneAt: null, createdAt: nowISO() });
+          // сразу переключаем экран на день задачи — иначе новая задача
+          // «пропадает» из виду, пока не подвигаешь стрелки дней вручную
+          taskDate = date === todayStr() ? null : date;
         }
         if (!existing) addLog('➕', `Создано: ${title}`);
       });

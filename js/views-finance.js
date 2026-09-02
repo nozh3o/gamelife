@@ -475,6 +475,9 @@ function openTxForm(existing, prefill) {
       <label class="field">Дата
         <input type="date" name="date" value="${t.date || todayStr()}">
       </label>
+      <label class="field">Время
+        <input type="time" name="time" value="${esc(t.time || new Date().toTimeString().slice(0, 5))}">
+      </label>
 
       <label class="field" id="catField" style="grid-column:1/-1;">Категория
         <input type="text" name="category" list="catList" value="${esc(t.category || '')}" placeholder="Еда" ${initialType !== 'transfer' ? 'required' : ''}>
@@ -581,6 +584,7 @@ function openTxForm(existing, prefill) {
         category: type === 'transfer' ? null : String(f.get('category') || '').trim() || 'Прочее',
         note: String(f.get('note') || '').trim(),
         date: f.get('date') || todayStr(),
+        time: f.get('time') || new Date().toTimeString().slice(0, 5),
       };
 
       mutate(() => {
@@ -589,7 +593,7 @@ function openTxForm(existing, prefill) {
           Object.assign(existing, data);
           applyTxEffect(existing, 1);
         } else {
-          const tx = { id: uid(), time: new Date().toTimeString().slice(0, 5), ...data };
+          const tx = { id: uid(), ...data };
           state.finance.transactions.unshift(tx);
           applyTxEffect(tx, 1);
           addLog(type === 'income' ? '💵' : type === 'expense' ? '💸' : '🔁',
