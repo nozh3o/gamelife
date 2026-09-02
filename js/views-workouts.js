@@ -16,6 +16,7 @@ function renderWorkouts() {
         <p class="page-sub">Упражнения и подходы — вес и повторы, прогресс виден по каждому упражнению отдельно.</p>
       </div>
       <div class="head-actions">
+        <button class="btn ghost" id="importWorkoutText">${icon('clipboard',15)} Импорт из текста</button>
         <button class="btn primary" id="addWorkout">${icon('plus',15)} Тренировка</button>
       </div>
     </div>
@@ -32,6 +33,7 @@ function renderWorkouts() {
     <div class="list" id="workoutList"></div>`;
 
   document.getElementById('addWorkout').addEventListener('click', () => openWorkoutForm());
+  document.getElementById('importWorkoutText').addEventListener('click', () => openWorkoutImportForm());
 
   document.getElementById('workoutList').innerHTML = workouts.length
     ? workouts.map(workoutCardHtml).join('')
@@ -263,6 +265,149 @@ function openWorkoutForm(id) {
         }
       });
       closeModal();
+    });
+  });
+}
+
+/* ---- Импорт тренировок из текста ------------------------------------------
+   Многие ведут записи тренировок в заметках телефона в свободной форме —
+   даём вставить такой текст целиком, без ручного повторного ввода.
+   Понимаем формат вида:
+     30 августа
+     (грудь, бицепс)
+     Жим на грудь горизонтально:
+     20кг - 15 повторений - 1 подход
+     по 14кг - 9 повторений - 1 подход
+   Строка-дата начинает новый день, «(...)» сразу под ней — заголовок
+   тренировки (группы мышц), дальше — название упражнения, потом его подходы.
+   Несколько дней в одном тексте — тоже ок. */
+
+const RU_MONTHS = {
+  'января': 0, 'февраля': 1, 'марта': 2, 'апреля': 3, 'мая': 4, 'июня': 5,
+  'июля': 6, 'августа': 7, 'сентября': 8, 'октября': 9, 'ноября': 10, 'декабря': 11,
+};
+
+function parseRuDateLine(line) {
+  const m = line.trim().match(/^(\d{1,2})\s+([а-яё]+)(?:\s+(\d{4}))?\.?$/iu);
+  if (!m || !(m[2].toLowerCase() in RU_MONTHS)) return null;
+  const day = Number(m[1]);
+  const month = RU_MONTHS[m[2].toLowerCase()];
+  let year = m[3] ? Number(m[3]) : new Date().getFullYear();
+  let d = new Date(year, month, day);
+  if (!m[3]) {
+    // без года — считаем, что запись из прошлого, а не из будущего
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (d > today) d = new Date(--year, month, day);
+  }
+  return Number.isNaN(d.getTime()) ? null : dateStr(d);
+}
+
+/* «20кг - 15 повторений - 1 подход» / «по 14кг - 9 повторений - 1 подход» —
+   вес необязателен (упражнения с телом), «по» означает вес на руку/сторону,
+   но хранится как есть — так же, как при ручном вводе одного числа веса. */
+function parseSetLine(line) {
+  const s = line.trim().replace(/[–—−]/g, '-');
+  const m = s.match(/^(?:по\s+)?(?:([\d]+(?:[.,]\d+)?)\s*кг\s*-\s*)?(\d+)\s*повторени[а-яё]*\s*-\s*(\d+)\s*подход/iu);
+  if (!m) return null;
+  return {
+    weight: m[1] ? Number(m[1].replace(',', '.')) : 0,
+    reps: Number(m[2]),
+    count: Math.max(1, Number(m[3]) || 1),
+  };
+}
+
+function parseWorkoutBlock(date, rawLines) {
+  const lines = rawLines.map(l => l.trim()).filter(Boolean);
+  let title = '', start = 0;
+  if (lines.length && /^\(.+\)$/.test(lines[0])) { title = lines[0].slice(1, -1).trim(); start = 1; }
+
+  const exercises = [];
+  let current = null;
+  for (let i = start; i < lines.length; i++) {
+    const set = parseSetLine(lines[i]);
+    if (set) {
+      if (!current) { current = { id: uid(), name: 'Упражнение', sets: [] }; exercises.push(current); }
+      for (let k = 0; k < set.count; k++) current.sets.push({ weight: set.weight, reps: set.reps });
+    } else {
+      current = { id: uid(), name: lines[i].replace(/:\s*$/, '').trim(), sets: [] };
+      exercises.push(current);
+    }
+  }
+  return { title: title || 'Тренировка', date, note: '', exercises: exercises.filter(ex => ex.sets.length) };
+}
+
+function parseWorkoutsFromText(text) {
+  const lines = String(text || '').split(/\r?\n/).map(l => l.trim());
+  const dateIdx = [];
+  lines.forEach((l, i) => { if (l && parseRuDateLine(l)) dateIdx.push(i); });
+
+  const blocks = dateIdx.length
+    ? dateIdx.map((idx, i) => ({ date: parseRuDateLine(lines[idx]), lines: lines.slice(idx + 1, dateIdx[i + 1] ?? lines.length) }))
+    : [{ date: todayStr(), lines }];
+
+  return blocks.map(b => parseWorkoutBlock(b.date, b.lines)).filter(w => w.exercises.length);
+}
+
+function openWorkoutImportForm() {
+  const body = `
+    <p class="text-dim" style="font-size:13px;line-height:1.5;margin:0 0 12px;">
+      Вставь запись тренировки текстом — понимаем строку с датой («30 августа»), заголовок
+      в скобках, название упражнения и подходы вида «20кг - 15 повторений - 1 подход».
+      Можно вставить сразу несколько дней подряд.
+    </p>
+    <label class="field">Текст тренировки
+      <textarea id="importText" rows="14" placeholder="30 августа
+(грудь, бицепс)
+
+Жим на грудь горизонтально:
+20кг - 15 повторений - 1 подход
+40кг - 15 повторений - 1 подход"></textarea>
+    </label>
+    <div id="importPreview" class="mt16"></div>
+    <div class="form-actions mt16">
+      <button type="button" class="btn ghost" data-cancel>Отмена</button>
+      <button type="button" class="btn primary" id="importParseBtn">${icon('checkmark',15)} Разобрать</button>
+    </div>`;
+
+  openModal('Импорт тренировки из текста', body, modal => {
+    const textarea = modal.querySelector('#importText');
+    const preview = modal.querySelector('#importPreview');
+    let parsed = [];
+
+    modal.querySelector('[data-cancel]').addEventListener('click', closeModal);
+    modal.querySelector('#importParseBtn').addEventListener('click', () => {
+      parsed = parseWorkoutsFromText(textarea.value);
+      if (!parsed.length) {
+        preview.innerHTML = `<div class="empty-hint">Не удалось распознать ни одной тренировки — проверь формат текста.</div>`;
+        return;
+      }
+      preview.innerHTML = parsed.map(w => `
+        <div class="card mt8">
+          <div class="flex-between">
+            <div class="workout-title">${esc(w.title)}</div>
+            <div class="text-dim" style="font-size:12px;">${fmtDateHuman(w.date)}</div>
+          </div>
+          <div class="exercise-list">
+            ${w.exercises.map(ex => `
+              <div class="exercise-row">
+                <div class="exercise-name">${esc(ex.name)}</div>
+                <div class="exercise-sets">${ex.sets.map(setChipHtml).join('')}</div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('')
+        + `<div class="form-actions mt16">
+            <button type="button" class="btn primary" id="importSaveBtn">${icon('save',15)} Сохранить ${parsed.length} ${plural(parsed.length, 'тренировку', 'тренировки', 'тренировок')}</button>
+           </div>`;
+      preview.querySelector('#importSaveBtn').addEventListener('click', () => {
+        mutate(() => {
+          parsed.forEach(w => {
+            state.workouts.push({ id: uid(), ...w, createdAt: nowISO() });
+            addLog('🏋️', `Тренировка записана: ${w.title}`);
+          });
+        });
+        toast(`Импортировано ${parsed.length} ${plural(parsed.length, 'тренировка', 'тренировки', 'тренировок')}`, 'gold');
+        closeModal();
+      });
     });
   });
 }
