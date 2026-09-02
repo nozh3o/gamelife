@@ -6,7 +6,8 @@
 function renderWorkouts() {
   const workouts = [...state.workouts].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
   const weekAgo = dateStr(new Date(Date.now() - 6 * 86400000));
-  const thisWeek = state.workouts.filter(w => w.date >= weekAgo).length;
+  // будущие тренировки (запланированные наперёд) в счётчик прошедших не считаем
+  const thisWeek = state.workouts.filter(w => w.date >= weekAgo && w.date <= todayStr()).length;
   const streak = workoutStreak();
 
   content().innerHTML = `
@@ -203,7 +204,7 @@ function openWorkoutForm(id) {
         <input type="text" name="title" value="${esc(w.title || '')}" placeholder="Например: Верх тела" required autofocus>
       </label>
       <label class="field">Дата
-        <input type="date" name="date" value="${esc(w.date || todayStr())}" max="${todayStr()}">
+        <input type="date" name="date" value="${esc(w.date || todayStr())}">
       </label>
 
       <div style="grid-column: 1/-1;">
