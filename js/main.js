@@ -173,7 +173,7 @@ function positionNavIndicators() {
 
 function goTab(tab) {
   currentTab = tab;
-  document.getElementById('sidebar').classList.remove('open');
+  closeSidebar();
   renderAll();
   // короткая анимация появления контента при переходе между вкладками —
   // снимаем и тут же ставим класс заново, иначе повторный переход не переиграет анимацию
@@ -218,6 +218,40 @@ function renderAll() {
   (TAB_RENDERERS[currentTab] || renderHome)();
 }
 
+/* ---- Боковая панель на телефоне (сайдбар как оверлей) --------------------
+   На мобильном сайдбар — просто position:fixed поверх страницы. Сама
+   страница под ним при этом остаётся обычным прокручиваемым документом:
+   на iOS одного overflow:hidden на body для этого недостаточно — тач всё
+   равно докручивает документ насквозь, стоит только жесту дойти до конца
+   списка в сайдбаре и «перетечь» на скролл-цепочку выше. Фикс — увести body
+   в position:fixed на время открытой панели и вернуть скролл на место при
+   закрытии. Заодно подложка (sidebarBackdrop) не даёт тапать по контенту
+   под панелью, пока она открыта. */
+let sidebarScrollY = 0;
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar.classList.contains('open')) return;
+  sidebarScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  sidebar.classList.add('open');
+  if (backdrop) backdrop.classList.add('open');
+  document.body.classList.add('scroll-locked');
+  document.body.style.top = `-${sidebarScrollY}px`;
+}
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!sidebar.classList.contains('open')) return;
+  sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('open');
+  document.body.classList.remove('scroll-locked');
+  document.body.style.top = '';
+  window.scrollTo(0, sidebarScrollY);
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.contains('open') ? closeSidebar() : openSidebar();
+}
+
 function applyTheme() {
   const root = document.documentElement;
   root.setAttribute('data-theme', state.settings.theme === 'light' ? 'light' : 'dark');
@@ -239,7 +273,6 @@ function init() {
   });
 
   const sidebar = document.getElementById('sidebar');
-  const toggleSidebar = () => sidebar.classList.toggle('open');
   document.getElementById('mobileMenuBtn').addEventListener('click', toggleSidebar);
 
   // нижняя панель на телефоне: прямые разделы работают как обычная навигация,
@@ -250,11 +283,11 @@ function init() {
     if (e.target.closest('#bottomMoreBtn')) toggleSidebar();
   });
 
-  // на телефоне меню закрывается тапом мимо него
+  // на телефоне меню закрывается тапом мимо него (подложка это тоже покрывает)
   document.addEventListener('click', e => {
     if (!sidebar.classList.contains('open')) return;
     if (sidebar.contains(e.target) || e.target.closest('#mobileMenuBtn') || e.target.closest('#bottomMoreBtn')) return;
-    sidebar.classList.remove('open');
+    closeSidebar();
   });
 
   window.addEventListener('resize', positionNavIndicators);
