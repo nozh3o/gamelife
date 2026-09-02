@@ -891,7 +891,11 @@ function bindQuickBar() {
       try {
         const actions = await qaAskAi(text);
         if (actions.length) { input.value = ''; openQuickPreview(actions, text); return; }
+        toast('ИИ не понял фразу — пробую по шаблону', 'red');
       } catch (e) {
+        // раньше ошибка тихо уходила только в консоль, и голос как будто «просто
+        // не работал» без объяснения — теперь всегда показываем тост с причиной
+        toast('ИИ недоступен: ' + e.message, 'red');
         console.warn('ИИ не смог разобрать голосовую фразу, пробуем локальный разбор:', e);
       } finally {
         qaThinking = false;
