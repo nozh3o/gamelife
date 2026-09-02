@@ -561,6 +561,9 @@ create trigger gamelife_touch before insert or update
 -- Личные токены для записи из Клода (MCP-коннектор) и функция, которая
 -- по такому токену кладёт запись в очередь agentInbox внутри сохранения.
 -- Хранится только хеш токена — сам токен показывается один раз при создании.
+-- pgcrypto у Supabase обычно уже стоит, но в схеме extensions, а не public —
+-- поэтому ниже у функции явно прописан search_path с обеими схемами,
+-- иначе digest() внутри неё будет «не найден».
 create extension if not exists pgcrypto;
 
 create table if not exists public.agent_tokens (
@@ -584,7 +587,7 @@ create or replace function public.gamelife_agent_add(p_token text, p_kind text, 
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_user_id uuid;
