@@ -94,17 +94,22 @@ function qaDefaultGrams(title) {
    Разбор фразы
    ========================================================================= */
 
-/* Числа: «3 500», «3,5к», «15k», «2 тыс» */
+/* Числа: «3 500», «3,5к», «15k», «2 тыс», а также разговорные «5 тыщ»,
+   «косарь» (=1000) и «лям» (=1 000 000) — так в речи чаще всего и называют
+   круглые суммы. */
+const QA_THOUSAND_RE = /^(к|k|тыс[а-я.]*|тыщ[а-я]*|косар[а-я]*)/;
+const QA_MILLION_RE = /^(млн|лям[а-я]*)/;
+
 function qaNumbers(t) {
   const out = [];
-  const re = /(\d[\d  ]*(?:[.,]\d+)?)\s*(к|k|тыс[а-я.]*|млн)?/g;
+  const re = /(\d[\d  ]*(?:[.,]\d+)?)\s*(к|k|тыс[а-я.]*|тыщ[а-я]*|косар[а-я]*|млн|лям[а-я]*)?/g;
   let m;
   while ((m = re.exec(t)) !== null) {
     let value = Number(m[1].replace(/[\s ]/g, '').replace(',', '.'));
     if (!isFinite(value)) continue;
     const mult = m[2] || '';
-    if (/^(к|k|тыс)/.test(mult)) value *= 1000;
-    else if (mult === 'млн') value *= 1000000;
+    if (QA_THOUSAND_RE.test(mult)) value *= 1000;
+    else if (QA_MILLION_RE.test(mult)) value *= 1000000;
     out.push({ value, raw: m[0].trim(), index: m.index, after: t.slice(m.index + m[0].length, m.index + m[0].length + 12) });
   }
   return out;
