@@ -764,6 +764,11 @@ function syncActiveHtml() {
       <button class="btn primary" id="syncNowBtn">${icon('cloud',15)} Синхронизировать сейчас</button>
       <button class="btn ghost" id="syncOutBtn">Выйти на этом устройстве</button>
     </div>
+    <button class="btn ghost small mt8" id="showSqlBtn">${icon('clipboard',13)} SQL-код настройки</button>
+    <p class="text-dim" style="font-size:11.5px;line-height:1.5;margin:6px 0 0;">
+      Нужен, если приложение обновилось новой функцией (например «Запись из Клода»),
+      а нужной таблицы ещё нет в Supabase — код безопасно выполнять повторно.
+    </p>
 
     <hr class="hr">
     <div class="card-title" style="margin-bottom:8px;">История сохранений</div>
@@ -907,7 +912,46 @@ function showAgentTokenOnce(url) {
   });
 }
 
+/* Тот же SQL, что и на экране первичной настройки, но доступный и после
+   подключения — понадобится, если в новой версии приложения появилась
+   таблица/функция, которой ещё нет в уже настроенном проекте Supabase
+   (например, «Запись из Клода» добавили в код позже, чем человек в
+   последний раз запускал этот SQL). Код идемпотентный — повторный запуск
+   ничего не портит. */
+function showSyncSqlModal() {
+  const body = `
+    <p class="text-dim" style="font-size:13px;line-height:1.55;margin:0 0 12px;">
+      Этот код можно выполнять повторно в любой момент — ничего не удаляет
+      и не трогает уже сохранённые данные, только создаёт то, чего не хватает.
+      Вставь в Supabase → <b>SQL Editor</b> → <b>Run</b>.
+    </p>
+    <div class="sql-box">
+      <button class="btn small" id="copySqlModal">${icon('clipboard',15)} Скопировать код</button>
+      <pre id="sqlTextModal">${esc(SYNC_SQL)}</pre>
+    </div>
+    <div class="form-actions" style="margin-top:14px;">
+      <button type="button" class="btn primary" data-modal-close>Закрыть</button>
+    </div>`;
+  openModal('SQL-код синхронизации', body, modal => {
+    modal.querySelector('#copySqlModal').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(SYNC_SQL);
+        toast('Код скопирован — вставь его в SQL Editor', 'green');
+      } catch (e) {
+        const r = document.createRange();
+        r.selectNodeContents(modal.querySelector('#sqlTextModal'));
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        toast('Код выделен — скопируй его сочетанием Ctrl+C', 'gold');
+      }
+    });
+  });
+}
+
 function bindSyncCard(root) {
+  const showSqlBtn = root.querySelector('#showSqlBtn');
+  if (showSqlBtn) showSqlBtn.addEventListener('click', showSyncSqlModal);
+
+
   const copyBtn = root.querySelector('#copySql');
   if (copyBtn) copyBtn.addEventListener('click', async () => {
     try {
