@@ -1,5 +1,5 @@
 /* Service worker: держит приложение работоспособным без интернета. */
-const CACHE = 'gamelife-v67';
+const CACHE = 'gamelife-v68';
 
 const CORE = [
   './', './index.html', './style.css', './manifest.json',
@@ -10,7 +10,7 @@ const CORE = [
   './js/food-db.js', './js/views-nutrition.js',
   './js/views-finance.js',
   './js/views-stats.js', './js/views-journal.js',
-  './js/views-settings.js', './js/sync.js', './js/reminders.js', './js/main.js',
+  './js/views-settings.js', './js/sync.js', './js/sync-ui.js', './js/reminders.js', './js/main.js',
 ];
 const EXTRA = [
   './icons/icon-192.png', './icons/icon-512.png',
