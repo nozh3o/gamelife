@@ -32,7 +32,7 @@ function qaCap(s) {
 
 /* ---- Слова-подсказки ---------------------------------------------------- */
 const QA_MONEY_OUT = /(потрат|купил|купля|заплат|оплат|отдал|списал|спустил|расход|трата|ушло)/;
-const QA_MONEY_IN = /(получил|заработал|зарплат|доход|пришло|вернул|продал|преми|аванс)/;
+const QA_MONEY_IN = /(получил|заработал|зарплат|доход|пришло|пополнил|поступил|начислил|закинул|вернул|продал|преми|аванс)/;
 const QA_CURRENCY = /(тг|тенге|₸|руб|рубл|₽|доллар|\$|евро|€|сом|тнг)/;
 const QA_MEAL_RE = /(съел|съела|поел|покушал|скушал|перекус|выпил|выпила|позавтракал|пообедал|поужинал|на завтрак|на обед|на ужин|еда:)/;
 const QA_WORKOUT_RE = /(тренировк|жим|присед|тяга|тяг[иу]|подтягив|отжим|планк|бицепс|трицепс|пресс|выпад|разгибан|сгибан|гантел|штанг|турник|скручиван|берпи|качал)/;
@@ -126,11 +126,20 @@ function qaMatchHint(t, hints) {
   return null;
 }
 
+/* Ищем счёт по названию из фразы: не только целиком («Каспи Голд» в фразе
+   «Каспи Голд»), но и по значимому слову счёта («каспи» находит «Каспи Голд»,
+   «Каспи Gold» и т.п.) — иначе многословные названия почти никогда не совпадали бы. */
 function qaFindAccount(t) {
+  const words = t.split(/\s+/).filter(w => w.length > 2);
+  let best = null, bestLen = 0;
   for (const a of state.finance.accounts) {
-    const n = qaNorm(a.name);
-    if (n.length > 3 && t.includes(n)) return a;
+    const nameWords = qaNorm(a.name).split(/\s+/).filter(w => w.length > 2);
+    if (!nameWords.length) continue;
+    const hit = nameWords.some(nw => words.some(w => w === nw || w.startsWith(nw) || nw.startsWith(w)));
+    if (hit && nameWords.join(' ').length > bestLen) { best = a; bestLen = nameWords.join(' ').length; }
   }
+  if (best) return best;
+
   const byType = type => state.finance.accounts.find(a => a.type === type);
   if (/налич|кэш|cash/.test(t)) return byType('cash');
   if (/кредитк|кредитн/.test(t)) return byType('credit');
@@ -140,7 +149,7 @@ function qaFindAccount(t) {
 }
 
 /* Служебные слова, которым нечего делать в заметке к операции */
-const QA_NOTE_STOP = /^(потратил[а-я]*|купил[а-я]*|заплатил[а-я]*|оплатил[а-я]*|отдал[а-я]*|списал[а-я]*|спустил[а-я]*|получил[а-я]*|заработал[а-я]*|пришло|вернул[а-я]*|продал[а-я]*|ушло|тг|тенге|₸|руб[а-я]*|₽|доллар[а-я]*|евро|сом|картой|карт[а-я]*|наличными|налич[а-я]*|налом|кэшем|безналом|переводом|кредитк[а-я]*|кредитн[а-я]*|г|гр|кг|мл|шт|на|за|в|из|с|по|у|и)$/;
+const QA_NOTE_STOP = /^(мне|мной|потратил[а-я]*|купил[а-я]*|заплатил[а-я]*|оплатил[а-я]*|отдал[а-я]*|списал[а-я]*|спустил[а-я]*|получил[а-я]*|заработал[а-я]*|пополнил[а-я]*|поступил[а-я]*|начислил[а-я]*|закинул[а-я]*|пришло|вернул[а-я]*|продал[а-я]*|ушло|тг|тенге|₸|руб[а-я]*|₽|доллар[а-я]*|евро|сом|картой|карт[а-я]*|наличными|налич[а-я]*|налом|кэшем|безналом|переводом|кредитк[а-я]*|кредитн[а-я]*|г|гр|кг|мл|шт|на|за|в|из|с|по|у|и)$/;
 
 function qaParseMoney(t) {
   const amount = qaAmount(t);
@@ -150,12 +159,17 @@ function qaParseMoney(t) {
     ? (qaMatchHint(t, QA_INCOME_HINTS) || 'Прочее')
     : (qaMatchHint(t, QA_EXPENSE_HINTS) || 'Прочее');
   const account = qaFindAccount(t);
+  // слова самого названия счёта тоже незачем повторять в заметке — счёт уже
+  // выбран отдельным полем («каспи» из «Каспи Голд» и т.п.)
+  const accountWords = account ? new Set(qaNorm(account.name).split(/\s+/).filter(w => w.length > 2)) : null;
 
   // заметка — исходная фраза без глагола, суммы, валюты и слов про счёт
   const note = qaCap(t
     .replace(amount.raw, ' ')
     .replace(/^[+-]\s*/, '')
-    .split(/\s+/).filter(w => w && !QA_NOTE_STOP.test(w)).join(' '));
+    .split(/\s+/)
+    .filter(w => w && !QA_NOTE_STOP.test(w) && !(accountWords && [...accountWords].some(aw => w === aw || w.startsWith(aw) || aw.startsWith(w))))
+    .join(' '));
 
   return {
     kind: isIncome ? 'income' : 'expense',
@@ -330,14 +344,23 @@ function qaShiftDate(days) {
   return dateStr(d);
 }
 
+/* Возвращает МАССИВ задач — при диктовке часто называют сразу несколько
+   подряд («задача помыть посуду, вынести мусор и полить цветы»), и каждая
+   должна стать отдельной записью, а не одной длинной строкой. Запятая —
+   надёжный признак перечисления, поэтому дробим по ней; последнее «и» в
+   списке дробим только когда запятая уже была — без неё «и» скорее всего
+   часть одного дела («сходить в магазин и купить хлеб»). */
 function qaParseTodo(t) {
-  let title = t.replace(QA_TODO_RE, '').replace(/^\s*(мне|что|бы|:)\s*/, '').trim();
+  let body = t.replace(QA_TODO_RE, '').replace(/^\s*(мне|что|бы|:)\s*/, '').trim();
   let date = todayStr();
-  if (/послезавтра/.test(title)) { date = qaShiftDate(2); title = title.replace(/послезавтра/g, ' '); }
-  else if (/завтра/.test(title)) { date = qaShiftDate(1); title = title.replace(/завтра/g, ' '); }
-  else title = title.replace(/сегодня/g, ' ');
-  title = qaCap(title.replace(/\s+/g, ' ').trim());
-  return title ? { kind: 'todo', title, date } : null;
+  if (/послезавтра/.test(body)) { date = qaShiftDate(2); body = body.replace(/послезавтра/g, ' '); }
+  else if (/завтра/.test(body)) { date = qaShiftDate(1); body = body.replace(/завтра/g, ' '); }
+  else body = body.replace(/сегодня/g, ' ');
+
+  const hasComma = /,/.test(body);
+  const splitRe = hasComma ? /,+|(?:^|\s)и\s+(?=[а-яё])/ : /,+/;
+  const items = body.split(splitRe).map(s => qaCap(s.replace(/\s+/g, ' ').trim())).filter(Boolean);
+  return items.length ? items.map(title => ({ kind: 'todo', title, date })) : null;
 }
 
 /* «зарядку» должно совпадать с «Зарядка», поэтому сравниваем и основы слов */
@@ -416,7 +439,12 @@ function qaParse(text) {
     chunks.push(...(parts.length ? parts : [s]));
   });
   const actions = [];
-  chunks.forEach(c => { const a = qaParseOne(c); if (a) actions.push(a); });
+  chunks.forEach(c => {
+    const a = qaParseOne(c);
+    if (!a) return;
+    if (Array.isArray(a)) actions.push(...a);
+    else actions.push(a);
+  });
   return actions;
 }
 
@@ -707,6 +735,7 @@ async function qaAskAi(text) {
     `Сегодня ${todayStr()}.`,
     `Категории расходов: ${expenseCats().map(c => c.name).join(', ')}.`,
     `Категории доходов: ${incomeCats().map(c => c.name).join(', ')}.`,
+    `Счета пользователя: ${state.finance.accounts.map(a => a.name).join(', ')}.`,
   ].join(' ');
 
   const res = await fetch(syncCfg.foodFn, {
@@ -734,10 +763,12 @@ function qaNormalizeAiActions(raw) {
     if (kind === 'expense' || kind === 'income') {
       const amount = Math.abs(Number(a.amount) || 0);
       if (!amount) return;
+      const account = String(a.account || '').trim();
+      const matched = account ? qaFindAccount(qaNorm(account)) : null;
       out.push({
         kind, amount,
         category: String(a.category || 'Прочее').slice(0, 40),
-        accountId: (state.finance.accounts[0] || {}).id,
+        accountId: (matched || state.finance.accounts[0] || {}).id,
         note: String(a.note || '').slice(0, 120),
       });
     } else if (kind === 'meal') {
@@ -826,11 +857,15 @@ function quickBarHtml() {
     </div>`;
 }
 
+let qaThinking = false;
+
 function bindQuickBar() {
   const form = document.getElementById('quickBar');
   if (!form) return;
   const input = document.getElementById('quickInput');
 
+  // печатать привычно продолжаем разбирать локальными шаблонами — это мгновенно
+  // и работает офлайн, а шаблоны для набора текста ловят почти всё нужное
   const run = () => {
     const text = input.value.trim();
     if (!text) { input.focus(); return; }
@@ -838,6 +873,38 @@ function bindQuickBar() {
     if (actions.length) openQuickPreview(actions, text);
     else openQuickFallback(text);
     input.value = '';
+  };
+
+  // а голос — фраза «любая», без подгонки под шаблон, поэтому сначала спрашиваем
+  // ИИ (если он настроен): он понимает смысл целиком, а не ключевые слова, и не
+  // путает «пополнили каспи на 5к» с тратой. Шаблоны — только запасной вариант,
+  // если ИИ не настроен или не смог ответить.
+  const runVoice = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (qaAiAvailable()) {
+      qaThinking = true;
+      mic.classList.add('thinking');
+      mic.innerHTML = icon('hourglass', 16);
+      input.disabled = true;
+      try {
+        const actions = await qaAskAi(text);
+        if (actions.length) { input.value = ''; openQuickPreview(actions, text); return; }
+      } catch (e) {
+        console.warn('ИИ не смог разобрать голосовую фразу, пробуем локальный разбор:', e);
+      } finally {
+        qaThinking = false;
+        mic.classList.remove('thinking');
+        mic.innerHTML = icon('mic', 16);
+        input.disabled = false;
+      }
+    }
+
+    const actions = qaParse(text);
+    input.value = '';
+    if (actions.length) openQuickPreview(actions, text);
+    else openQuickFallback(text);
   };
 
   form.addEventListener('submit', e => { e.preventDefault(); run(); });
@@ -852,7 +919,7 @@ function bindQuickBar() {
 
   const mic = document.getElementById('quickMic');
   if (!qaSpeechSupported()) mic.style.display = 'none';
-  else mic.addEventListener('click', () => qaListen(input, mic, run));
+  else mic.addEventListener('click', () => { if (!qaThinking) qaListen(input, mic, runVoice); });
 }
 
 /* ---- Голос -------------------------------------------------------------- */

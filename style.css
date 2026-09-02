@@ -526,6 +526,12 @@ body::before {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255,93,115,.45); }
   50% { box-shadow: 0 0 0 9px rgba(255,93,115,0); }
 }
+/* ИИ разбирает голосовую фразу — пока ждём ответ сервера */
+.qb-btn.thinking { background: var(--accent); color: #fff; animation: qbThink 1.1s ease-in-out infinite; }
+@keyframes qbThink {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 0 9px rgba(0,0,0,0); }
+}
 .qb-hints { display: flex; gap: 6px; margin-top: 8px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
 .qb-hints::-webkit-scrollbar { display: none; }
 .qb-hints .chip-btn { flex: none; white-space: nowrap; }
