@@ -296,6 +296,29 @@ function mergeMissingCategories(target, source) {
   return changed;
 }
 
+/* Счета — особый случай, тот самый «счёт удалился, появился новый»: normalize()
+   гарантирует хотя бы один счёт всегда (см. state.js), поэтому «массив пуст»
+   для них никогда не сработает — вместо пустоты там оказывается один свежий
+   счёт по умолчанию с нулевым балансом. Сравниваем именно с этой формой:
+   если у одной стороны только дефолтный «Основной счёт» с балансом 0, а у
+   другой — что-то настоящее (другое имя, другой баланс, больше одного счёта),
+   подменяем дефолтную сторону на настоящую. */
+function isFreshDefaultAccounts(accounts) {
+  return Array.isArray(accounts) && accounts.length === 1
+    && (accounts[0].balance || 0) === 0
+    && accounts[0].name === 'Основной счёт';
+}
+function mergeAccountsIfDefault(target, source) {
+  if (!target || !source || !target.finance || !source.finance) return false;
+  const tAcc = target.finance.accounts;
+  const sAcc = source.finance.accounts;
+  if (isFreshDefaultAccounts(tAcc) && Array.isArray(sAcc) && sAcc.length && !isFreshDefaultAccounts(sAcc)) {
+    target.finance.accounts = sAcc;
+    return true;
+  }
+  return false;
+}
+
 /* ---- Основной алгоритм ---------------------------------------------------- */
 async function syncNow(manual = false) {
   if (!syncSignedIn() || syncBusy) return;
@@ -345,8 +368,10 @@ async function syncNow(manual = false) {
     // заранее, чтобы после решения обе содержали объединение и ни одна
     // непустая категория не потерялась, какая бы сторона ни победила.
     if (!intentionalReset) {
-      const stateChanged = mergeMissingCategories(state, remote.data);
+      let stateChanged = mergeMissingCategories(state, remote.data);
       mergeMissingCategories(remote.data, state);
+      stateChanged = mergeAccountsIfDefault(state, remote.data) || stateChanged;
+      mergeAccountsIfDefault(remote.data, state);
       // подмешали категорию локально — сохраняем сразу, иначе если по общим
       // таймстемпам ничего «не менялось», объединённые данные повиснут
       // только в памяти и потеряются при следующей перезагрузке
