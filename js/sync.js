@@ -344,6 +344,48 @@ function mergeArraysById(preferred, other, deleted) {
   return [...byId.values(), ...withoutId];
 }
 
+/* Баг: «записал операцию — баланс не изменился». Счета выше (finance.accounts)
+   слиты через mergeArraysById — при совпадении id побеждает объект ОДНОЙ
+   стороны целиком, включая его balance. А операции (finance.transactions)
+   слиты как ОБЪЕДИНЕНИЕ обеих сторон — значит после слияния список операций
+   может содержать то, чего в выигравшем balance ещё нет (операция создана
+   на другой стороне и до неё синк ещё не доехал), либо наоборот не
+   содержать то, что в balance ещё осталось (операцию удалили на другой
+   стороне). Операция в истории видна (список слит), а сумма — нет.
+
+   Чиним через «остаток»: у каждого счёта берём СОБСТВЕННЫЙ исходный список
+   операций той стороны, чей объект счёта победил, и находим разницу
+   balance − сумма(эффектов этих операций) — это ручная правка при сверке
+   (см. engine.js) или любое иное расхождение, которое нужно сохранить.
+   Итоговый баланс = эта разница + сумма(эффектов уже слитого списка
+   операций) — так учитываются и правки руками, и чужие операции, и
+   удалённые операции разом. */
+function txAccountEffect(tx, accId) {
+  if (!tx || !accId) return 0;
+  if (tx.type === 'income') return tx.accountId === accId ? (tx.amount || 0) : 0;
+  if (tx.type === 'expense') return tx.accountId === accId ? -(tx.amount || 0) : 0;
+  if (tx.type === 'transfer') {
+    let n = 0;
+    if (tx.accountId === accId) n -= (tx.amount || 0);
+    if (tx.toAccountId === accId) n += (tx.amount || 0);
+    return n;
+  }
+  return 0;
+}
+function reconcileAccountBalances(merged, base, other) {
+  if (!merged || !merged.finance || !Array.isArray(merged.finance.accounts)) return;
+  const baseAccIds = new Set(((base && base.finance && base.finance.accounts) || []).map(a => a.id));
+  const baseTx = (base && base.finance && base.finance.transactions) || [];
+  const otherTx = (other && other.finance && other.finance.transactions) || [];
+  const mergedTx = merged.finance.transactions || [];
+  const sumEffect = (list, accId) => list.reduce((s, t) => s + txAccountEffect(t, accId), 0);
+  for (const acc of merged.finance.accounts) {
+    const sourceTx = baseAccIds.has(acc.id) ? baseTx : otherTx;
+    const manualResidual = (acc.balance || 0) - sumEffect(sourceTx, acc.id);
+    acc.balance = manualResidual + sumEffect(mergedTx, acc.id);
+  }
+}
+
 /* ---- Основной алгоритм ---------------------------------------------------- */
 async function syncNow(manual = false) {
   if (!syncSignedIn() || syncBusy) return;
@@ -475,6 +517,10 @@ async function syncNow(manual = false) {
     for (const path of [...CATEGORY_PATHS, ['finance', 'accounts'], ['log']]) {
       setPath(merged, path, mergeArraysById(getPath(base, path), getPath(other, path), deletedSet));
     }
+    // счета слиты целиком по стороне-победителю (balance включительно), а
+    // операции — объединением; без этого шага баланс не совпадал бы с
+    // операцией, которая только что «приехала» с другого устройства
+    reconcileAccountBalances(merged, base, other);
     merged.deletedIds = deletedList;
     applyRemoteState(merged);
     const row = await pushRemote();
