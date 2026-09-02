@@ -1,6 +1,6 @@
 /* =========================================================================
-   views-home.js — главный экран: отсчёт до Бангкока, фраза дня,
-   короткая сводка «Сегодня»
+   views-home.js — главный экран: быстрый ввод одной фразой, отсчёт
+   до Бангкока, фраза дня, короткая сводка «Сегодня»
    ========================================================================= */
 
 function greeting() {
@@ -25,6 +25,8 @@ function renderHome() {
         <p class="page-sub">${esc(new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
       </div>
     </div>
+
+    ${quickBarHtml()}
 
     <div class="add-row" style="margin-top:0;">
       <button class="btn primary" data-quick="expense">${icon('wallet', 15)} Трата</button>
@@ -84,6 +86,7 @@ function renderHome() {
     else if (kind === 'journal') goTab('journal');
   }));
 
+  bindQuickBar();
   startBangkokCountdown();
 }
 

@@ -446,9 +446,9 @@ function txRowHtml(t) {
 }
 
 /* ---- Форма операции ------------------------------------------------------------ */
-function openTxForm(existing) {
+function openTxForm(existing, prefill) {
   const isEdit = !!existing;
-  const t = existing || {};
+  const t = existing || prefill || {};
   const initialType = t.type || 'expense';
   const accounts = state.finance.accounts;
 

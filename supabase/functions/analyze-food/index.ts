@@ -4,6 +4,10 @@
 // Стоит между приложением и сервисом распознавания: ключ хранится здесь
 // в секретах проекта и в браузер никогда не попадает.
 //
+// Два режима, оба через POST:
+//   { "image": "<base64>" }            — оценка КБЖУ по фотографии еды
+//   { "text": "фраза", "context": "" } — разбор фразы быстрого ввода
+//
 // Секреты (Settings → Edge Functions → Secrets):
 //   FOOD_API_URL    базовый адрес сервиса, например https://api.example.com/v1
 //   FOOD_API_KEY    твой ключ
@@ -38,6 +42,25 @@ const PROMPT = `Ты помогаешь вести дневник питания
 - Если на фото несколько блюд, объедини их в одну запись и перечисли в названии.
 - Если понять, что это за еда, невозможно, верни "title": "Не удалось распознать" и нули.
 - В "note" честно предупреждай, когда размер порции или состав определить трудно.`;
+
+const TEXT_PROMPT = `Ты разбираешь короткую фразу из личного трекера и превращаешь её
+в готовые записи. Отвечай ТОЛЬКО одним объектом JSON, без пояснений и без markdown:
+
+{ "actions": [ ... ] }
+
+Элементом массива может быть:
+{ "kind": "expense" | "income", "amount": число, "category": "строка", "note": "строка" }
+{ "kind": "meal", "items": [ { "title": "", "grams": число, "kcal": число, "protein": число, "fat": число, "carbs": число } ] }
+{ "kind": "workout", "exercises": [ { "name": "", "sets": [ { "weight": число в кг, "reps": число } ] } ] }
+{ "kind": "todo", "title": "", "date": "ГГГГ-ММ-ДД" }
+{ "kind": "journal", "mood": 1..5, "text": "" }
+
+Важно:
+- Во фразе может быть сразу несколько дел — тогда в массиве несколько элементов.
+- КБЖУ считай на всю порцию, а не на 100 грамм; вес порции оценивай по еде.
+- Категорию бери из списка в контексте, а если ничего не подходит — "Прочее".
+- Вес в подходах — в килограммах; для упражнений с своим весом ставь 0.
+- Если фраза непонятна, верни { "actions": [] } и ничего не выдумывай.`
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -79,14 +102,24 @@ Deno.serve(async (req: Request) => {
   const format = (Deno.env.get("FOOD_API_FORMAT") || "anthropic").toLowerCase();
   const model = Deno.env.get("FOOD_MODEL") || "claude-opus-5";
 
-  let image: string;
+  let image = "";
+  let text = "";
+  let context = "";
   try {
     const body = await req.json();
     image = String(body.image || "");
-    if (!image) throw new Error("нет изображения");
+    text = String(body.text || "").slice(0, 600);
+    context = String(body.context || "").slice(0, 600);
+    if (!image && !text) throw new Error("нечего разбирать");
   } catch {
-    return jsonResponse({ error: "ожидалось поле image с картинкой в base64" }, 400);
+    return jsonResponse({ error: "ожидалось поле image с картинкой в base64 или text с фразой" }, 400);
   }
+  const isText = !image;
+  const textPrompt = `${TEXT_PROMPT}
+
+${context}
+
+Фраза: ${text}`;
 
   const base = apiUrl.replace(/\/+$/, "");
   let endpoint: string;
@@ -101,13 +134,15 @@ Deno.serve(async (req: Request) => {
     };
     payload = {
       model,
-      max_tokens: 700,
+      max_tokens: isText ? 1000 : 700,
       messages: [{
         role: "user",
-        content: [
-          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
-          { type: "text", text: PROMPT },
-        ],
+        content: isText
+          ? [{ type: "text", text: textPrompt }]
+          : [
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+            { type: "text", text: PROMPT },
+          ],
       }],
     };
   } else {
@@ -119,13 +154,15 @@ Deno.serve(async (req: Request) => {
     };
     payload = {
       model,
-      max_tokens: 700,
+      max_tokens: isText ? 1000 : 700,
       messages: [{
         role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
-          { type: "text", text: PROMPT },
-        ],
+        content: isText
+          ? [{ type: "text", text: textPrompt }]
+          : [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
+            { type: "text", text: PROMPT },
+          ],
       }],
     };
   }
@@ -148,10 +185,10 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: `сервис распознавания ответил ${upstream.status}` }, 502);
   }
 
-  let text = "";
+  let answer = "";
   try {
     const data = JSON.parse(raw);
-    text = format === "openai"
+    answer = format === "openai"
       ? (data.choices?.[0]?.message?.content ?? "")
       : (data.content ?? []).filter((b: { type: string }) => b.type === "text")
           .map((b: { text: string }) => b.text).join("\n");
@@ -160,7 +197,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const parsed = extractJson(text);
+    const parsed = extractJson(answer);
+    if (isText) {
+      return jsonResponse({ actions: Array.isArray(parsed.actions) ? parsed.actions : [] });
+    }
     return jsonResponse({
       title: parsed.title ?? "Блюдо",
       grams: Number(parsed.grams) || 100,
@@ -171,7 +211,7 @@ Deno.serve(async (req: Request) => {
       note: parsed.note ?? "",
     });
   } catch (e) {
-    console.error("parse error", text.slice(0, 500));
+    console.error("parse error", answer.slice(0, 500));
     return jsonResponse({ error: (e as Error).message }, 502);
   }
 });
