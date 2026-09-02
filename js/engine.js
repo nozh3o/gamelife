@@ -70,6 +70,54 @@ function financeCategoryMonth(category, monthKey) {
 }
 function financeAccount(id) { return state.finance.accounts.find(a => a.id === id); }
 
+/* ---- Итоги недели -------------------------------------------------------
+   Сводка по только что закончившейся неделе (прошлый понедельник — вчера),
+   для карточки на главном экране, которая показывается только по
+   понедельникам. Ничего отдельно не хранит — просто агрегирует то, что уже
+   есть в остальных разделах. */
+function lastWeekRange() {
+  const end = new Date(); end.setDate(end.getDate() - 1); // вчера — если сегодня понедельник, это воскресенье
+  const start = new Date(end); start.setDate(start.getDate() - 6);
+  return { startStr: dateStr(start), endStr: dateStr(end) };
+}
+function weeklyDigest() {
+  const { startStr, endStr } = lastWeekRange();
+  const inWeek = ds => ds >= startStr && ds <= endStr;
+
+  const txWeek = state.finance.transactions.filter(t => inWeek(t.date));
+  const income = txWeek.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txWeek.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+  const workoutsWeek = state.workouts.filter(w => inWeek(w.date)).length;
+
+  const kcalByDay = {};
+  state.nutrition.entries.filter(e => inWeek(e.date)).forEach(e => { kcalByDay[e.date] = (kcalByDay[e.date] || 0) + (e.kcal || 0); });
+  const nutritionDayCount = Object.keys(kcalByDay).length;
+  const avgKcal = nutritionDayCount ? Math.round(Object.values(kcalByDay).reduce((a, b) => a + b, 0) / nutritionDayCount) : 0;
+
+  const sleepWeek = state.sleep.entries.filter(e => inWeek(e.date));
+  const avgSleepMin = sleepWeek.length ? Math.round(sleepWeek.reduce((s, e) => s + e.durationMin, 0) / sleepWeek.length) : 0;
+  const avgSleepScore = sleepWeek.length ? Math.round(sleepWeek.reduce((s, e) => s + e.score, 0) / sleepWeek.length) : 0;
+
+  const journalWeek = state.journal.filter(j => inWeek(j.date) && j.mood);
+  const avgMood = journalWeek.length ? journalWeek.reduce((s, j) => s + j.mood, 0) / journalWeek.length : 0;
+
+  let activeDays = 0;
+  if (typeof computeActivityCounts === 'function') {
+    const counts = computeActivityCounts();
+    for (const cursor = parseDate(startStr); dateStr(cursor) <= endStr; cursor.setDate(cursor.getDate() + 1)) {
+      if (counts[dateStr(cursor)]) activeDays++;
+    }
+  }
+
+  return {
+    startStr, endStr, income, expense, saved: income - expense,
+    workoutsWeek, avgKcal, nutritionDayCount,
+    avgSleepMin, avgSleepScore, sleepDayCount: sleepWeek.length,
+    avgMood, moodDayCount: journalWeek.length, activeDays,
+  };
+}
+
 /* ---- Сон -----------------------------------------------------------------
    Оценка ночи (0–100) собрана из трёх составляющих — по той же схеме, что
    публично описывают Oura и SleepScore Labs (у обоих оценка — сумма

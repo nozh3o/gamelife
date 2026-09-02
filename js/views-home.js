@@ -34,6 +34,8 @@ function renderHome() {
       <button class="btn" data-quick="journal">${icon('book', 15)} Запись в журнал</button>
     </div>
 
+    ${weeklyDigestCardHtml()}
+
     ${bangkokCountdownHtml()}
 
     <div class="card phrase-card mt16">
@@ -88,6 +90,63 @@ function renderHome() {
 
   bindQuickBar();
   startBangkokCountdown();
+  bindWeeklyDigest();
+}
+
+/* ---- Итоги недели: карточка на главном экране только по понедельникам ---
+   «Правильно реализовать» здесь означает три вещи: показывать строго в
+   день недели === понедельник (не «раз в 7 дней от установки»), не лезть
+   с пустой сводкой новым пользователям без данных, и давать спокойно
+   скрыть карточку без риска, что она тут же появится опять при следующем
+   действии в приложении (renderAll вызывается на каждый mutate). */
+const WEEKLY_DIGEST_DISMISS_KEY = 'gamelife_weekdigest_dismissed_v1';
+function isWeeklyDigestDismissed(startStr) {
+  try { return localStorage.getItem(WEEKLY_DIGEST_DISMISS_KEY) === startStr; } catch (e) { return false; }
+}
+function dismissWeeklyDigest(startStr) {
+  try { localStorage.setItem(WEEKLY_DIGEST_DISMISS_KEY, startStr); } catch (e) {}
+}
+
+function weeklyDigestCardHtml() {
+  if (new Date().getDay() !== 1) return ''; // 1 = понедельник (getDay: вс=0)
+  const d = weeklyDigest();
+  if (isWeeklyDigestDismissed(d.startStr)) return '';
+
+  const rows = [];
+  if (d.income || d.expense) rows.push({ icon: 'wallet', color: SECTION_COLORS.finance, label: 'Отложено за неделю', value: fmtMoney(d.saved) });
+  if (d.workoutsWeek) rows.push({ icon: 'dumbbell', color: SECTION_COLORS.workouts, label: 'Тренировки', value: `${d.workoutsWeek} ${plural(d.workoutsWeek, 'тренировка', 'тренировки', 'тренировок')}` });
+  if (d.nutritionDayCount) rows.push({ icon: 'leaf', color: SECTION_COLORS.nutrition, label: 'Питание, в среднем за день', value: `${fmtNum(d.avgKcal)} ккал` });
+  if (d.sleepDayCount) rows.push({ icon: 'moon', color: SECTION_COLORS.sleep, label: 'Сон, в среднем за ночь', value: `${fmtDuration(d.avgSleepMin)} · оценка ${d.avgSleepScore}` });
+  if (d.moodDayCount) {
+    const m = MOODS.find(x => x.id === Math.round(d.avgMood)) || MOODS[2];
+    rows.push({ icon: 'book', color: SECTION_COLORS.journal, label: 'Настроение по дневнику', value: m.label });
+  }
+  if (d.activeDays) rows.push({ icon: 'check', color: SECTION_COLORS.tasks, label: 'Дней с активностью', value: `${d.activeDays} из 7` });
+
+  if (!rows.length) return ''; // за неделю вообще ничего не вели — сводке нечего показать
+
+  return `<div class="card mt16" id="weeklyDigestCard">
+    <div class="card-title">
+      <span>${icon('calendar', 16)} Итоги недели <small>${fmtDateHuman(d.startStr)} – ${fmtDateHuman(d.endStr)}</small></span>
+      <button class="btn ghost small icon-only" id="weeklyDigestClose" title="Скрыть до следующего понедельника">${icon('x', 13)}</button>
+    </div>
+    <div class="weekly-digest-rows">
+      ${rows.map(r => `<div class="wd-row">
+        <span class="ic-badge" style="color:${r.color}">${icon(r.icon, 16)}</span>
+        <span class="wd-label">${esc(r.label)}</span>
+        <span class="wd-value">${esc(r.value)}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function bindWeeklyDigest() {
+  const closeBtn = document.getElementById('weeklyDigestClose');
+  if (!closeBtn) return;
+  closeBtn.addEventListener('click', () => {
+    dismissWeeklyDigest(weeklyDigest().startStr);
+    document.getElementById('weeklyDigestCard').remove();
+  });
 }
 
 /* ---- Отсчёт до вылета в Бангкок ------------------------------------------

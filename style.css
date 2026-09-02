@@ -246,6 +246,26 @@ body::before {
 .page-sub { color: var(--text-dim); font-size: 13.5px; margin: 0; max-width: 720px; line-height: 1.5; }
 .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
+/* Цветовой акцент по разделу — не игровая награда, а просто более быстрая
+   ориентация, когда экранов много: у каждого раздела свой закреплённый
+   цвет (см. SECTION_COLORS в main.js), который проявляется точкой перед
+   заголовком страницы и — там, где это уместно — иконками в сводках,
+   собирающих данные сразу из нескольких разделов (например, «Итоги недели»). */
+#content[data-section="tasks"], #content[data-section="stats"]      { --sec: var(--accent); }
+#content[data-section="goals"], #content[data-section="journal"]    { --sec: var(--gold); }
+#content[data-section="wishes"], #content[data-section="sleep"]     { --sec: var(--accent-2); }
+#content[data-section="finance"]   { --sec: var(--green); }
+#content[data-section="nutrition"] { --sec: var(--cyan); }
+#content[data-section="workouts"]  { --sec: var(--orange); }
+#content[data-section] .page-title {
+  display: flex; align-items: center; gap: 10px;
+}
+#content[data-section] .page-title::before {
+  content: ''; width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: var(--sec);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sec) 16%, transparent);
+}
+
 .grid { display: grid; gap: 14px; }
 .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -586,6 +606,17 @@ body::before {
   .countdown-cell { padding: 9px 4px; border-radius: 13px; }
   .countdown-label { font-size: 9.5px; }
 }
+
+/* ============ Итоги недели (только по понедельникам) ============ */
+.weekly-digest-rows { display: flex; flex-direction: column; }
+.wd-row { display: flex; align-items: center; gap: 11px; padding: 9px 2px; }
+.wd-row + .wd-row { border-top: 1px solid var(--border-soft); }
+.wd-row .ic-badge {
+  width: 32px; height: 32px; border-radius: 10px; background: var(--panel-3);
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+.wd-label { flex: 1; font-size: 13px; color: var(--text-dim); font-weight: 500; }
+.wd-value { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ============ Трекер сна ============ */
 .sleep-start-card {

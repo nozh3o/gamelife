@@ -199,9 +199,22 @@ const TAB_RENDERERS = {
   settings: renderSettings,
 };
 
+/* Разделы с закреплённым цветом (см. --sec в style.css) — используется и для
+   точки перед заголовком страницы, и для цветных иконок в «Итогах недели».
+   Главная и настройки нейтральные — dataset.section для них не выставляем,
+   чтобы точка перед заголовком там не появлялась вовсе. */
+const SECTION_COLORS = {
+  tasks: 'var(--accent)', stats: 'var(--accent)',
+  goals: 'var(--gold)', journal: 'var(--gold)',
+  wishes: 'var(--accent-2)', sleep: 'var(--accent-2)',
+  finance: 'var(--green)', nutrition: 'var(--cyan)', workouts: 'var(--orange)',
+};
+
 function renderAll() {
   renderNav();
   renderSyncBadge();
+  if (SECTION_COLORS[currentTab]) content().dataset.section = currentTab;
+  else delete content().dataset.section;
   (TAB_RENDERERS[currentTab] || renderHome)();
 }
 
