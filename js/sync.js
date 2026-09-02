@@ -282,6 +282,35 @@ function mergeAccountsIfDefault(target, source) {
   return false;
 }
 
+/* Тот же баг, что чинили выше для счетов, только с питанием: nutrition.profile
+   и nutrition.targets — не массивы, поэтому CATEGORY_PATHS их не защищает.
+   Они просто едут ЦЕЛИКОМ с той стороной state, что победила по ОБЩЕЙ метке
+   времени state.updatedAt — а эта метка обновляется от ЛЮБОГО изменения
+   (отметил чужую задачу — она уже «новее»), не только от правки питания.
+   Итог: устройство, где питание никогда не настраивали, побеждало по общим
+   часам и стирало настоящий профиль/нормы дефолтом. Профили сравниваем
+   через JSON-равенство с только что созданным defaultState() — тот же
+   приём, что и isFreshDefaultAccounts() выше, просто для другой категории. */
+function isDefaultNutritionProfile(profile) {
+  return !!profile && JSON.stringify(profile) === JSON.stringify(defaultState().nutrition.profile);
+}
+function isDefaultNutritionTargets(targets) {
+  return !!targets && JSON.stringify(targets) === JSON.stringify(defaultState().nutrition.targets);
+}
+function mergeNutritionProfileIfDefault(target, source) {
+  if (!target || !source || !target.nutrition || !source.nutrition) return false;
+  let changed = false;
+  if (isDefaultNutritionProfile(target.nutrition.profile) && source.nutrition.profile && !isDefaultNutritionProfile(source.nutrition.profile)) {
+    target.nutrition.profile = source.nutrition.profile;
+    changed = true;
+  }
+  if (isDefaultNutritionTargets(target.nutrition.targets) && source.nutrition.targets && !isDefaultNutritionTargets(source.nutrition.targets)) {
+    target.nutrition.targets = source.nutrition.targets;
+    changed = true;
+  }
+  return changed;
+}
+
 /* Объединяет два массива по id вместо выбора одной стороны целиком — иначе
    при конфликте «менялось и там, и там» (см. ниже) элемент, добавленный на
    проигравшей по общей метке времени стороне, просто исчезал бы, даже если
@@ -422,6 +451,8 @@ async function syncNow(manual = false) {
       mergeMissingCategories(remote.data, state);
       stateChanged = mergeAccountsIfDefault(state, remote.data) || stateChanged;
       mergeAccountsIfDefault(remote.data, state);
+      stateChanged = mergeNutritionProfileIfDefault(state, remote.data) || stateChanged;
+      mergeNutritionProfileIfDefault(remote.data, state);
       // подмешали категорию локально — сохраняем сразу, иначе если по общим
       // таймстемпам ничего «не менялось», объединённые данные повиснут
       // только в памяти и потеряются при следующей перезагрузке
