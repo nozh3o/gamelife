@@ -174,10 +174,6 @@ body::before {
 }
 .mobile-menu-btn .ic { width: 19px; height: 19px; }
 
-/* Подложка под сайдбаром существует только на телефоне (см. media-запрос
-   ниже) — на десктопе сайдбар не оверлей, подложке скрываться незачем. */
-.sidebar-backdrop { display: none; }
-
 /* ============ Нижняя панель (телефон) ============ */
 .bottom-nav {
   display: none;
@@ -1110,21 +1106,6 @@ code {
     box-shadow: 0 0 60px rgba(0,0,0,.5);
   }
   .sidebar.open { transform: translateX(0); }
-
-  /* Подложка под открытой панелью — не даёт тапать/скроллить контент под
-     ней, пока меню открыто; сама панель к тому же читается яснее поверх
-     затемнения, а не поверх обычного фона страницы. */
-  .sidebar-backdrop {
-    display: block; position: fixed; inset: 0; z-index: 49;
-    background: rgba(0,0,0,.5); opacity: 0; pointer-events: none;
-    transition: opacity .25s ease;
-  }
-  .sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
-
-  /* Пока панель открыта, страница за ней уходит в position:fixed — на iOS
-     одного overflow:hidden недостаточно, тач всё равно докручивает документ
-     насквозь под панелью (см. openSidebar()/closeSidebar() в main.js). */
-  body.scroll-locked { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
 
   /* отступы с учётом «чёлки» и жестовой полосы на телефонах;
      снизу — запас, чтобы нижнюю панель не перекрывала футер сайдбара */

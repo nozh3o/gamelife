@@ -219,37 +219,22 @@ function renderAll() {
 }
 
 /* ---- Боковая панель на телефоне (сайдбар как оверлей) --------------------
-   На мобильном сайдбар — просто position:fixed поверх страницы. Сама
-   страница под ним при этом остаётся обычным прокручиваемым документом:
-   на iOS одного overflow:hidden на body для этого недостаточно — тач всё
-   равно докручивает документ насквозь, стоит только жесту дойти до конца
-   списка в сайдбаре и «перетечь» на скролл-цепочку выше. Фикс — увести body
-   в position:fixed на время открытой панели и вернуть скролл на место при
-   закрытии. Заодно подложка (sidebarBackdrop) не даёт тапать по контенту
-   под панелью, пока она открыта. */
-let sidebarScrollY = 0;
-function openSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebarBackdrop');
-  if (sidebar.classList.contains('open')) return;
-  sidebarScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-  sidebar.classList.add('open');
-  if (backdrop) backdrop.classList.add('open');
-  document.body.classList.add('scroll-locked');
-  document.body.style.top = `-${sidebarScrollY}px`;
-}
-function closeSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebarBackdrop');
-  if (!sidebar.classList.contains('open')) return;
-  sidebar.classList.remove('open');
-  if (backdrop) backdrop.classList.remove('open');
-  document.body.classList.remove('scroll-locked');
-  document.body.style.top = '';
-  window.scrollTo(0, sidebarScrollY);
-}
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.contains('open') ? closeSidebar() : openSidebar();
+   Первая попытка (position:fixed на body + подложка) на реальном iOS у
+   пользователя залипала — экран темнел и переставал скроллиться вообще,
+   хотя в эмуляции работало нормально. Откатил на минимальный, ничего не
+   двигающий вариант: пока панель открыта, просто гасим тач-скролл вне
+   самой панели через touchmove — без position:fixed, без подложки, без
+   пересчёта scrollY. Внутри панели свой overflow-y работает как обычно
+   (слушатель ничего не делает, если жест начался внутри неё). */
+function sidebarOpen() { return document.getElementById('sidebar').classList.contains('open'); }
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); }
+function toggleSidebar() { sidebarOpen() ? closeSidebar() : openSidebar(); }
+
+function blockScrollOutsideSidebar(e) {
+  if (!sidebarOpen()) return;
+  if (e.target.closest('#sidebar')) return; // скролл внутри панели — не трогаем
+  e.preventDefault();
 }
 
 function applyTheme() {
@@ -283,12 +268,14 @@ function init() {
     if (e.target.closest('#bottomMoreBtn')) toggleSidebar();
   });
 
-  // на телефоне меню закрывается тапом мимо него (подложка это тоже покрывает)
+  // на телефоне меню закрывается тапом мимо него
   document.addEventListener('click', e => {
     if (!sidebar.classList.contains('open')) return;
     if (sidebar.contains(e.target) || e.target.closest('#mobileMenuBtn') || e.target.closest('#bottomMoreBtn')) return;
     closeSidebar();
   });
+  // пока панель открыта — не даём странице позади неё скроллиться от тача
+  document.addEventListener('touchmove', blockScrollOutsideSidebar, { passive: false });
 
   window.addEventListener('resize', positionNavIndicators);
   blockPinchZoom();
