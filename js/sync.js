@@ -181,11 +181,54 @@ function hasRealContent(s) {
     (s.dailies && s.dailies.length) ||
     (s.habits && s.habits.length) ||
     (s.goals && s.goals.length) ||
+    (s.wishes && s.wishes.length) ||
+    (s.workouts && s.workouts.length) ||
     (s.journal && s.journal.length) ||
     (s.log && s.log.length) ||
     (s.finance && s.finance.transactions && s.finance.transactions.length) ||
     (s.nutrition && s.nutrition.entries && s.nutrition.entries.length)
   );
+}
+
+/* Пути к самостоятельным категориям данных внутри state. Раньше синхронизация
+   сравнивала состояния только целиком («чьё новее — то и победило»), а это
+   значит: если на одном устройстве, например, привычки новее, но финансы там
+   пустые просто потому что их тут никогда не вели — побеждает ВСЁ состояние
+   целиком, вместе с пустыми финансами, тихо стирая настоящие траты в облаке.
+   hasRealContent() выше защищает только от полностью пустого устройства —
+   этого мало. mergeMissingCategories() ниже чинит именно этот случай: перед
+   тем как решать, чья версия новее, подмешивает в обе стороны те категории,
+   которые пусты с одной стороны, но не пусты с другой — так после решения
+   обе стороны содержат объединение, и «пустая просто потому что не вели»
+   категория никогда не перетирает настоящие данные. */
+const CATEGORY_PATHS = [
+  ['todos'], ['dailies'], ['habits'], ['goals'], ['wishes'], ['workouts'], ['journal'],
+  ['finance', 'transactions'], ['finance', 'budgets'],
+  ['nutrition', 'entries'], ['nutrition', 'dictionary'],
+];
+function getPath(obj, path) {
+  return path.reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), obj);
+}
+function setPath(obj, path, value) {
+  let o = obj;
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!o[path[i]] || typeof o[path[i]] !== 'object') o[path[i]] = {};
+    o = o[path[i]];
+  }
+  o[path[path.length - 1]] = value;
+}
+function mergeMissingCategories(target, source) {
+  if (!target || !source) return false;
+  let changed = false;
+  for (const path of CATEGORY_PATHS) {
+    const targetArr = getPath(target, path);
+    const sourceArr = getPath(source, path);
+    if ((!Array.isArray(targetArr) || !targetArr.length) && Array.isArray(sourceArr) && sourceArr.length) {
+      setPath(target, path, sourceArr);
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 /* ---- Основной алгоритм ---------------------------------------------------- */
@@ -219,20 +262,36 @@ async function syncNow(manual = false) {
       if (extra.length) state.agentInbox = [...(state.agentInbox || []), ...extra];
     }
 
-    const remoteAt = Date.parse(remote.updated_at) || 0;
-    const localAt = state.updatedAt || 0;
-    const localChanged = localAt > syncCfg.lastSyncAt;
-    const remoteChanged = remoteAt > syncCfg.lastRemoteAt;
-
     // «Удалить всё» в Настройках ставит одноразовую метку — тогда пустому
-    // состоянию доверяем как есть. Иначе пустое устройство не должно
-    // затирать чужой настоящий прогресс просто потому, что его метка
-    // времени свежее.
+    // состоянию доверяем как есть (и категории ниже намеренно НЕ подмешиваем,
+    // иначе осознанный сброс тут же откатился бы обратно чужими данными).
+    // Иначе пустое устройство/категория не должны затирать чужой настоящий
+    // прогресс просто потому, что общая метка времени свежее.
     let intentionalReset = false;
     try {
       intentionalReset = localStorage.getItem(INTENTIONAL_RESET_KEY) === '1';
       if (intentionalReset) localStorage.removeItem(INTENTIONAL_RESET_KEY);
     } catch (e) {}
+
+    // Победитель определяется по состоянию ЦЕЛИКОМ (по общей метке времени),
+    // но отдельная категория (финансы, питание и т.д.) может быть пустой на
+    // «победившей» стороне просто потому, что её тут не вели — а не потому,
+    // что её осознанно очистили. Подмешиваем такие категории в обе стороны
+    // заранее, чтобы после решения обе содержали объединение и ни одна
+    // непустая категория не потерялась, какая бы сторона ни победила.
+    if (!intentionalReset) {
+      const stateChanged = mergeMissingCategories(state, remote.data);
+      mergeMissingCategories(remote.data, state);
+      // подмешали категорию локально — сохраняем сразу, иначе если по общим
+      // таймстемпам ничего «не менялось», объединённые данные повиснут
+      // только в памяти и потеряются при следующей перезагрузке
+      if (stateChanged) saveState();
+    }
+
+    const remoteAt = Date.parse(remote.updated_at) || 0;
+    const localAt = state.updatedAt || 0;
+    const localChanged = localAt > syncCfg.lastSyncAt;
+    const remoteChanged = remoteAt > syncCfg.lastRemoteAt;
 
     if (!intentionalReset && (localChanged || remoteChanged)) {
       const localEmpty = !hasRealContent(state);
