@@ -192,6 +192,7 @@ const TAB_RENDERERS = {
   wishes: renderWishes,
   nutrition: renderNutrition,
   workouts: renderWorkouts,
+  sleep: renderSleep,
   finance: renderFinance,
   stats: renderStats,
   journal: renderJournal,

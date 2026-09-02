@@ -67,6 +67,13 @@ function defaultState() {
     goals: [],
     wishes: [],   // карта желаний: {id, title, note, icon, image, done, doneAt}
     workouts: [], // тренировки: {id, date, title, note, exercises: [{id, name, sets: [{weight, reps}]}]}
+    sleep: {
+      profile: { targetHours: 8 },
+      // активная (незавершённая) ночь: {bedAt} — появляется по кнопке «Ложусь спать»,
+      // пропадает, когда ночь закрыта записью в entries или отменена
+      active: null,
+      entries: [], // {id, date, bedAt, asleepAt, wokeAt, durationMin, quality, note, score, createdAt}
+    },
     finance: {
       accounts: [
         { id: 'main', name: 'Основной счёт', icon: 'card', type: 'card', balance: 0, creditLimit: 0, color: '#7c5cff', createdAt: nowISO() },
@@ -171,6 +178,12 @@ function normalize(parsed, d) {
   s.nutrition.targets = { ...d.nutrition.targets, ...(pn.targets || {}) };
   if (!Array.isArray(s.nutrition.entries)) s.nutrition.entries = [];
   if (!Array.isArray(s.nutrition.dictionary)) s.nutrition.dictionary = [];
+
+  const ps = parsed.sleep || {};
+  s.sleep = deepMergeDefaults(ps, d.sleep);
+  s.sleep.profile = { ...d.sleep.profile, ...(ps.profile || {}) };
+  if (!Array.isArray(s.sleep.entries)) s.sleep.entries = [];
+  if (!s.sleep.active || typeof s.sleep.active !== 'object' || !s.sleep.active.bedAt) s.sleep.active = null;
 
   // массивы должны остаться массивами
   for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log', 'agentInbox', 'deletedIds']) {

@@ -69,3 +69,42 @@ function financeCategoryMonth(category, monthKey) {
     .reduce((s, t) => s + t.amount, 0);
 }
 function financeAccount(id) { return state.finance.accounts.find(a => a.id === id); }
+
+/* ---- Сон ---------------------------------------------------------------
+   Оценка ночи — не игровые очки, а просто понятная сводка: насколько
+   длительность попала в норму + (если указана) насколько хорошо
+   субъективно спалось. Без нормы (targetHours) есть смысл сравнивать
+   только с 8 часами — общепринятый ориентир для взрослого. */
+const SLEEP_FALL_ASLEEP_MIN = 15; // «обычно человек засыпает за столько» — не считаем это время сном
+
+function sleepDurationScore(durationMin, targetHours) {
+  const targetMin = targetHours * 60;
+  const diff = Math.abs(durationMin - targetMin);
+  // на границе ±180 минут от нормы оценка длительности уходит в ноль
+  return clamp(100 - diff * (100 / 180), 0, 100);
+}
+function computeSleepScore(durationMin, targetHours, quality) {
+  const durationScore = sleepDurationScore(durationMin, targetHours);
+  if (!quality) return Math.round(durationScore);
+  const qualityScore = (quality / 5) * 100;
+  return Math.round(durationScore * 0.7 + qualityScore * 0.3);
+}
+function fmtDuration(min) {
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return `${h}ч ${String(m).padStart(2, '0')}м`;
+}
+function sleepAdvice(durationMin, targetHours) {
+  const targetMin = targetHours * 60;
+  const diffMin = Math.round(targetMin - durationMin);
+  if (Math.abs(diffMin) <= 20) return 'Почти точно в норму — так держать.';
+  if (diffMin > 0) return `Не хватило примерно ${fmtDuration(diffMin)} до нормы в ${targetHours} ч — стоит лечь пораньше.`;
+  return `Спал(а) на ${fmtDuration(-diffMin)} больше нормы в ${targetHours} ч.`;
+}
+function sleepAvg(entries, days, field) {
+  const cutoff = todayStr();
+  const cursor = new Date(); cursor.setDate(cursor.getDate() - days + 1);
+  const from = dateStr(cursor);
+  const set = entries.filter(e => e.date >= from && e.date <= cutoff);
+  if (!set.length) return 0;
+  return set.reduce((s, e) => s + (e[field] || 0), 0) / set.length;
+}

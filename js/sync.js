@@ -251,7 +251,8 @@ function hasRealContent(s) {
     (s.journal && s.journal.length) ||
     (s.log && s.log.length) ||
     (s.finance && s.finance.transactions && s.finance.transactions.length) ||
-    (s.nutrition && s.nutrition.entries && s.nutrition.entries.length)
+    (s.nutrition && s.nutrition.entries && s.nutrition.entries.length) ||
+    (s.sleep && s.sleep.entries && s.sleep.entries.length)
   );
 }
 
@@ -270,6 +271,7 @@ const CATEGORY_PATHS = [
   ['todos'], ['dailies'], ['habits'], ['goals'], ['wishes'], ['workouts'], ['journal'],
   ['finance', 'transactions'], ['finance', 'budgets'],
   ['nutrition', 'entries'], ['nutrition', 'dictionary'],
+  ['sleep', 'entries'],
 ];
 function getPath(obj, path) {
   return path.reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), obj);

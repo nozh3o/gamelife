@@ -587,6 +587,16 @@ body::before {
   .countdown-label { font-size: 9.5px; }
 }
 
+/* ============ Трекер сна ============ */
+.sleep-start-card {
+  background: linear-gradient(135deg, #2b2f6b 0%, #1a1c3d 100%);
+  color: #fff; display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+@media (max-width: 560px) {
+  .sleep-start-card { flex-direction: column; align-items: stretch; text-align: center; }
+}
+
 /* ============ Фраза дня ============ */
 .phrase-card { display: flex; gap: 12px; align-items: flex-start; }
 .phrase-mark { font-size: 30px; line-height: 1; color: var(--accent-2); flex: none; font-weight: 800; }
