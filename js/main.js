@@ -233,7 +233,15 @@ function toggleSidebar() { sidebarOpen() ? closeSidebar() : openSidebar(); }
 
 function blockScrollOutsideSidebar(e) {
   if (!sidebarOpen()) return;
-  if (e.target.closest('#sidebar')) return; // скролл внутри панели — не трогаем
+  const sidebar = document.getElementById('sidebar');
+  const insideSidebar = e.target.closest('#sidebar');
+  // Список пунктов почти всегда целиком помещается на экран — скроллить
+  // внутри панели физически нечего. Раньше здесь просто пропускался любой
+  // жест, начавшийся внутри неё — а раз внутри скроллить некому, жест
+  // проваливался на страницу позади. Теперь гасим ВСЕГДА, кроме случая,
+  // когда пунктов реально стало больше высоты экрана — тогда даём панели
+  // проскроллить саму себя как обычно.
+  if (insideSidebar && sidebar.scrollHeight > sidebar.clientHeight) return;
   e.preventDefault();
 }
 
