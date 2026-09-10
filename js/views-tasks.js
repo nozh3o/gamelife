@@ -127,9 +127,12 @@ function renderTaskLists() {
     const emptyMsg = day === todayStr() ? 'Пока пусто — самое время добавить дело'
       : day < todayStr() ? 'В этот день задач не было'
       : 'Пока ничего не запланировано';
-    list.innerHTML = (active.length ? active.map(todoCardHtml).join('') : `<div class="task-day-empty">${emptyMsg}</div>`)
+    list.innerHTML = overdueBlockHtml(day)
+      // важно вызывать через стрелку: map передаёт вторым аргументом индекс,
+      // а вторым параметром todoCardHtml идёт признак просрочки
+      + (active.length ? active.map(t => todoCardHtml(t)).join('') : `<div class="task-day-empty">${emptyMsg}</div>`)
       + (done.length
-        ? `<div class="col-divider">Выполнено (${done.length})</div>` + done.slice(0, 40).map(todoCardHtml).join('')
+        ? `<div class="col-divider">Выполнено (${done.length})</div>` + done.slice(0, 40).map(t => todoCardHtml(t)).join('')
         : '');
   }
 
@@ -192,21 +195,49 @@ function dailyCardHtml(d) {
   </div>`;
 }
 
-function todoCardHtml(t) {
+/* Просроченное показываем на сегодняшнем дне, но дату не трогаем: задача
+   остаётся числиться за тем днём, когда её обещали. Иначе в недельном
+   обзоре нечем ответить на вопрос «почему разошлось» — список всегда
+   выглядел бы свежим, сколько бы дело ни висело. */
+function overdueTodos() {
+  const today = todayStr();
+  return state.todos
+    .filter(t => !t.done && t.date && t.date < today)
+    .filter(matchesFilter)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function overdueBlockHtml(day) {
+  // только на сегодняшнем дне: листая прошлое, видеть «просрочку» из ещё
+  // более раннего прошлого незачем
+  if (day !== todayStr()) return '';
+  const items = overdueTodos();
+  if (!items.length) return '';
+  const oldest = daysBetween(items[0].date, todayStr());
+  return `<div class="col-divider overdue-divider">
+      ${icon('alert',13)} Просрочено (${items.length}) <small>самая старая — ${oldest} ${plural(oldest, 'день', 'дня', 'дней')}</small>
+    </div>`
+    + items.map(t => todoCardHtml(t, true)).join('');
+}
+
+function todoCardHtml(t, overdue = false) {
   const checklistDone = (t.checklist || []).filter(c => c.done).length;
   const subParts = [];
   if ((t.checklist || []).length) subParts.push(`<span>${checklistDone}/${t.checklist.length}</span>`);
   if ((t.tags || []).length) subParts.push(`<span>${t.tags.map(tag => '#' + esc(tag)).join(' ')}</span>`);
 
-  return `<div class="task-card todo ${t.done ? 'is-done' : ''}">
+  const age = overdue ? daysBetween(t.date, todayStr()) : 0;
+  return `<div class="task-card todo ${t.done ? 'is-done' : ''} ${overdue ? 'is-overdue' : ''}">
     <div class="task-body">
       <div class="task-title ${t.done ? 'strike' : ''}">${esc(t.title)}</div>
+      ${overdue ? `<div class="task-overdue-line">${icon('clock',11)} с ${fmtDateHuman(t.date)} · ${age} ${plural(age, 'день', 'дня', 'дней')}</div>` : ''}
       ${t.note ? `<div class="task-note ${t.done ? 'strike' : ''}">${esc(t.note)}</div>` : ''}
       ${(t.checklist || []).length ? `<div class="checklist">${t.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="todo:${t.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
+      ${overdue ? `<button class="btn ghost small move-today" data-todo-today="${t.id}" title="Перенести на сегодня">${icon('calendar',13)}<span class="mt-label">на сегодня</span></button>` : ''}
       <button class="btn ghost small icon-only" data-edit="todo:${t.id}" title="Изменить">${icon('edit',14)}</button>
       <button class="btn ghost small icon-only danger-text" data-del="todo:${t.id}" title="Удалить">${icon('x',13)}</button>
     </div>
@@ -221,6 +252,13 @@ function bindTaskHandlers() {
   root.querySelectorAll('[data-habit-down]').forEach(b => b.addEventListener('click', () => clickHabit(b.dataset.habitDown, -1)));
   root.querySelectorAll('[data-daily]').forEach(b => b.addEventListener('click', () => toggleDaily(b.dataset.daily)));
   root.querySelectorAll('[data-todo]').forEach(b => b.addEventListener('click', () => toggleTodo(b.dataset.todo)));
+  root.querySelectorAll('[data-todo-today]').forEach(b => b.addEventListener('click', () => {
+    const t = state.todos.find(x => x.id === b.dataset.todoToday);
+    if (!t) return;
+    const from = t.date;
+    mutate(() => { t.date = todayStr(); t.movedFrom = t.movedFrom || from; });
+    toast(`«${t.title}» перенесена с ${fmtDateHuman(from)} на сегодня`, 'gold');
+  }));
   root.querySelectorAll('[data-cl]').forEach(cb => cb.addEventListener('change', () => {
     const [type, taskId, itemId] = cb.dataset.cl.split(':');
     toggleChecklist(type, taskId, itemId);
