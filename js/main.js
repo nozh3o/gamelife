@@ -22,16 +22,31 @@ function mutate(fn) {
    приложение — переиспользуя обычные addTransaction/addMealEntry и т.п.,
    чтобы не дублировать всю бизнес-логику (баланс счетов, стрики и т.д.)
    ещё и на сервере. Вызывается из sync.js после каждой синхронизации. */
+/* Типы, которые это приложение умеет применять. Список нужен именно здесь:
+   Клод узнаёт о новых командах сразу после деплоя коннектора, а установленное
+   приложение может ещё неделю работать на старой версии — и раньше такие
+   команды молча пропадали, потому что очередь чистилась целиком. */
+const KNOWN_AGENT_KINDS = new Set([
+  'transaction', 'workout', 'meal', 'meal_update', 'meal_delete',
+  'task', 'journal', 'goal', 'wish', 'habit_log', 'daily_done',
+]);
+
 function processAgentInbox() {
   const inbox = state.agentInbox || [];
   if (!inbox.length) return;
   let changed = false;
+  const unknown = [];
   inbox.forEach(item => {
+    if (!KNOWN_AGENT_KINDS.has(item && item.kind)) { unknown.push(item); return; }
     try { applyAgentItem(item); changed = true; }
     catch (e) { console.warn('Не удалось применить запись от Клода:', item, e); }
   });
-  state.agentInbox = [];
-  if (changed) { saveState(); renderAll(); }
+  // непонятые команды остаются ждать обновления, а не исчезают
+  state.agentInbox = unknown;
+  if (unknown.length) {
+    toast(`Клод прислал ${unknown.length} ${plural(unknown.length, 'команду', 'команды', 'команд')}, которых эта версия не знает — обнови приложение`, 'red');
+  }
+  if (changed || unknown.length !== inbox.length) { saveState(); renderAll(); }
 }
 
 function applyAgentItem(item) {
