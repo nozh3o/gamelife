@@ -134,6 +134,37 @@ const TOOLS = [
     },
   },
   {
+    name: "get_day",
+    description: "Прочитать сводку дня из приложения One: съеденное с суммой КБЖУ и нормой, тренировка, сон, замер, задачи на этот день. Читай перед тем, как записывать еду — иначе не видно, что уже записано.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Дата YYYY-MM-DD, по умолчанию сегодня" },
+      },
+    },
+  },
+  {
+    name: "list_meals",
+    description: "Прочитать приёмы пищи из дневника One за дату или за период. Возвращает записи целиком, включая дату и время.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        from: { type: "string", description: "Дата начала YYYY-MM-DD, по умолчанию сегодня" },
+        to: { type: "string", description: "Дата конца YYYY-MM-DD, по умолчанию равна from — то есть один день" },
+      },
+    },
+  },
+  {
+    name: "get_profile",
+    description: "Прочитать профиль из One: пол, возраст, рост, вес, суточные нормы КБЖУ, последний замер тела и частоту напоминаний о замере, остатки по счетам.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "list_tasks",
+    description: "Прочитать невыполненные задачи из One — на сегодня и просроченные.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "add_task",
     description: "Добавить задачу на день в приложение One (вкладка «Задачи»).",
     inputSchema: {
@@ -240,6 +271,31 @@ function respond(body: unknown, status = 200) {
   });
 }
 
+/* Инструменты чтения: в отличие от записи не кладут ничего в очередь, а
+   спрашивают базу и сразу возвращают ответ. Приложение в этом не участвует —
+   поэтому чтение работает даже если оно не открыто неделю. */
+const READ_KIND: Record<string, string> = {
+  get_day: "day",
+  list_meals: "meals",
+  get_profile: "profile",
+  list_tasks: "tasks",
+};
+
+async function callAgentRead(token: string, what: string, from?: string, to?: string) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/gamelife_agent_read`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_token: token, p_what: what, p_from: from ?? null, p_to: to ?? null }),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text.includes("invalid token")
+      ? "неверный или отозванный личный токен"
+      : `не удалось прочитать (сервер ответил ${res.status})`);
+  }
+  return text;
+}
+
 async function callAgentAdd(token: string, kind: string, payload: unknown) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/gamelife_agent_add`, {
     method: "POST",
@@ -316,7 +372,28 @@ Deno.serve(async (req: Request) => {
   if (method === "tools/call") {
     const name = params?.name || "";
     const args = params?.arguments || {};
+    const readWhat = READ_KIND[name];
     const kind = TOOL_KIND[name];
+
+    if (readWhat) {
+      if (!token) {
+        return respond(rpcResult(id, {
+          content: [{ type: "text", text: "В адресе подключения нет личного токена — пересоздай коннектор с полной ссылкой из Настроек приложения." }],
+          isError: true,
+        }));
+      }
+      try {
+        const from = String(args.date ?? args.from ?? "") || undefined;
+        const to = String(args.to ?? "") || undefined;
+        const data = await callAgentRead(token, readWhat, from, to);
+        return respond(rpcResult(id, { content: [{ type: "text", text: data }] }));
+      } catch (e) {
+        return respond(rpcResult(id, {
+          content: [{ type: "text", text: `Не получилось прочитать: ${e instanceof Error ? e.message : "неизвестная ошибка"}` }],
+          isError: true,
+        }));
+      }
+    }
 
     if (!kind) {
       return respond(rpcResult(id, {
