@@ -100,6 +100,40 @@ const TOOLS = [
     },
   },
   {
+    name: "update_meal",
+    description: "Изменить уже записанный приём пищи в дневнике One: перенести на другую дату, поправить вес или КБЖУ. Запись ищется по названию и дате, потому что читать дневник ассистент не умеет — id записей ему не видны. Если под условие попадает несколько приёмов, ничего не меняется, пока не передан all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название записи, как она названа в дневнике. Достаточно узнаваемой части: сравнение без учёта регистра и по вхождению" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, на которой запись лежит сейчас" },
+        new_date: { type: "string", description: "Новая дата YYYY-MM-DD — перенести приём на другой день" },
+        new_title: { type: "string", description: "Новое название" },
+        grams: { type: "number", description: "Новый вес порции в граммах" },
+        kcal: { type: "number", description: "Новые калории" },
+        protein: { type: "number", description: "Новые белки, г" },
+        fat: { type: "number", description: "Новые жиры, г" },
+        carbs: { type: "number", description: "Новые углеводы, г" },
+        time: { type: "string", description: "Новое время ЧЧ:ММ" },
+        all: { type: "boolean", description: "Изменить все совпадения, а не отказаться при неоднозначности" },
+      },
+      required: ["title", "date"],
+    },
+  },
+  {
+    name: "delete_meal",
+    description: "Удалить приём пищи из дневника One. Запись ищется по названию и дате. Если под условие попадает несколько приёмов, ничего не удаляется, пока не передан all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название записи. Достаточно узнаваемой части: сравнение без учёта регистра и по вхождению" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, на которой лежит запись" },
+        all: { type: "boolean", description: "Удалить все совпадения, а не отказаться при неоднозначности" },
+      },
+      required: ["title", "date"],
+    },
+  },
+  {
     name: "add_task",
     description: "Добавить задачу на день в приложение One (вкладка «Задачи»).",
     inputSchema: {
@@ -183,6 +217,8 @@ const TOOL_KIND: Record<string, string> = {
   add_transaction: "transaction",
   add_workout: "workout",
   add_meal: "meal",
+  update_meal: "meal_update",
+  delete_meal: "meal_delete",
   add_task: "task",
   add_journal_entry: "journal",
   add_goal: "goal",
@@ -224,6 +260,8 @@ function toolResultText(name: string, args: Record<string, unknown>) {
   }
   if (name === "add_workout") return `Тренировка «${args.title}»`;
   if (name === "add_meal") return `Приём пищи «${args.title}»`;
+  if (name === "update_meal") return `Правка приёма «${args.title}» за ${args.date}`;
+  if (name === "delete_meal") return `Удаление приёма «${args.title}» за ${args.date}`;
   if (name === "add_task") return `Задача «${args.title}»`;
   if (name === "add_journal_entry") return `Запись в дневнике`;
   if (name === "add_goal") return `Цель «${args.title}»`;

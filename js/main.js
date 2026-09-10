@@ -71,6 +71,47 @@ function applyAgentItem(item) {
       fat: Number(p.fat) || 0, carbs: Number(p.carbs) || 0, source: 'agent',
     });
     toast(`Клод добавил приём пищи: ${title}${mealDate !== todayStr() ? ' · ' + fmtDateHuman(mealDate) : ''}`, 'gold');
+  } else if (item.kind === 'meal_update' || item.kind === 'meal_delete') {
+    // Клод не видит дневник и не знает id записей, поэтому адресует их по
+    // названию и дате. При нескольких совпадениях по умолчанию не делаем
+    // ничего: молча тронуть не ту запись хуже, чем не тронуть никакую.
+    const needle = String(p.title || '').trim().toLowerCase();
+    const date = String(p.date || '').trim();
+    if (!needle || !date) return;
+    const found = state.nutrition.entries.filter(e =>
+      e.date === date && String(e.title || '').toLowerCase().includes(needle));
+
+    if (!found.length) {
+      toast(`Клод не нашёл «${p.title}» за ${fmtDateHuman(date)}`, 'red');
+      return;
+    }
+    if (found.length > 1 && !p.all) {
+      toast(`Под «${p.title}» за ${fmtDateHuman(date)} подходит ${found.length} записи — Клод не стал угадывать`, 'red');
+      return;
+    }
+
+    if (item.kind === 'meal_delete') {
+      const ids = new Set(found.map(e => e.id));
+      state.nutrition.entries = state.nutrition.entries.filter(e => !ids.has(e.id));
+      ids.forEach(id => markDeleted(id));
+      addLog('🗑️', `Клод удалил из дневника: ${p.title}`);
+      toast(`Клод удалил ${found.length === 1 ? `«${p.title}»` : `${found.length} записи`}`, 'gold');
+      return;
+    }
+
+    const patch = {};
+    if (p.new_title != null && String(p.new_title).trim()) patch.title = String(p.new_title).trim();
+    if (p.new_date != null && String(p.new_date).trim()) patch.date = String(p.new_date).trim();
+    if (p.time != null) patch.time = String(p.time);
+    ['grams', 'kcal', 'protein', 'fat', 'carbs'].forEach(k => {
+      if (p[k] != null && isFinite(Number(p[k]))) patch[k] = Number(p[k]);
+    });
+    if (!Object.keys(patch).length) return;
+    found.forEach(e => Object.assign(e, patch));
+    addLog('✏️', `Клод поправил запись: ${p.title}`);
+    toast(patch.date
+      ? `Клод перенёс «${p.title}» на ${fmtDateHuman(patch.date)}`
+      : `Клод поправил «${p.title}»`, 'gold');
   } else if (item.kind === 'task') {
     const title = String(p.title || '').trim();
     if (!title) return;
