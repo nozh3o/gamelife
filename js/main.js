@@ -8,6 +8,9 @@ const content = () => document.getElementById('content');
 /* Любое изменение состояния идёт через mutate: сохраняем и перерисовываем интерфейс. */
 function mutate(fn) {
   fn();
+  // цели, привязанные к счёту, не имеют своего момента «прогресс добавили» —
+  // их двигает любая операция по счёту, поэтому проверяем здесь же
+  if (typeof checkLinkedGoals === 'function') checkLinkedGoals();
   saveState();
   renderAll();
   if (typeof checkBudgetAlerts === 'function') checkBudgetAlerts();
@@ -59,12 +62,15 @@ function applyAgentItem(item) {
     toast(`Клод добавил тренировку: ${title}`, 'gold');
   } else if (item.kind === 'meal') {
     const title = String(p.title || 'Приём пищи').trim() || 'Приём пищи';
+    // date поддерживают все остальные kind — у приёмов пищи он терялся, и еда,
+    // записанная задним числом, всё равно ложилась на сегодняшний день
+    const mealDate = p.date || todayStr();
     addMealEntry({
-      title, grams: Number(p.grams) || 100, time: p.time || '',
+      title, grams: Number(p.grams) || 100, date: mealDate, time: p.time || '',
       kcal: Number(p.kcal) || 0, protein: Number(p.protein) || 0,
       fat: Number(p.fat) || 0, carbs: Number(p.carbs) || 0, source: 'agent',
     });
-    toast(`Клод добавил приём пищи: ${title}`, 'gold');
+    toast(`Клод добавил приём пищи: ${title}${mealDate !== todayStr() ? ' · ' + fmtDateHuman(mealDate) : ''}`, 'gold');
   } else if (item.kind === 'task') {
     const title = String(p.title || '').trim();
     if (!title) return;
@@ -193,6 +199,7 @@ const TAB_RENDERERS = {
   nutrition: renderNutrition,
   workouts: renderWorkouts,
   sleep: renderSleep,
+  body: renderBody,
   finance: renderFinance,
   stats: renderStats,
   journal: renderJournal,
@@ -208,6 +215,7 @@ const SECTION_COLORS = {
   goals: 'var(--gold)', journal: 'var(--gold)',
   wishes: 'var(--accent-2)', sleep: 'var(--accent-2)',
   finance: 'var(--green)', nutrition: 'var(--cyan)', workouts: 'var(--orange)',
+  body: 'var(--cyan)',
 };
 
 function renderAll() {

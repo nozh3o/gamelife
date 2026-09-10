@@ -93,6 +93,7 @@ const TOOLS = [
         protein: { type: "number", description: "Белки в граммах" },
         fat: { type: "number", description: "Жиры в граммах" },
         carbs: { type: "number", description: "Углеводы в граммах" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, по умолчанию сегодня" },
         time: { type: "string", description: "Время ЧЧ:ММ, необязательно" },
       },
       required: ["title", "kcal"],

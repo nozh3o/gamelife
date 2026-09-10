@@ -29,6 +29,11 @@ function renderStats() {
     const d = new Date(); d.setDate(d.getDate() - i);
     days14.push({ label: String(d.getDate()), value: dayTotals(dateStr(d)).kcal });
   }
+  const protein14 = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    protein14.push({ label: String(d.getDate()), value: Math.round(dayTotals(dateStr(d)).protein) });
+  }
   const daysWithEntries = new Set(state.nutrition.entries.map(e => e.date));
   const avgKcal = daysWithEntries.size
     ? Math.round(state.nutrition.entries.reduce((s, e) => s + (e.kcal || 0), 0) / daysWithEntries.size)
@@ -70,7 +75,13 @@ function renderStats() {
       <div class="card-title">Калории за 14 дней</div>
       ${barChartSvg(days14, { color: 'var(--gold)', height: 140, valueFmt: fmtNum })}
     </div>
+    <div class="card mt16">
+      <div class="card-title">Белок за 14 дней <small>норма ${fmtNum(activeTargets().protein)} г</small></div>
+      ${barChartSvg(protein14, { color: 'var(--cyan)', height: 140, valueFmt: v => fmtNum(v) + ' г' })}
+    </div>
 
+    ${bodyStatsHtml()}
+    ${weeklyActivityHtml()}
     ${moodChartHtml()}`;
 }
 
@@ -106,6 +117,68 @@ function computeActivityStreak(counts) {
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+/* Тело: вес по замерам и V-taper рядом. Разнесённые по разным экранам, эти два
+   числа ничего не значат — вместе они отвечают на вопрос «уходит жир или мышцы».
+   Раздел не показывается, пока замеров меньше двух: одна точка — не динамика. */
+function bodyStatsHtml() {
+  const entries = [...state.body.entries].sort((a, b) => a.date.localeCompare(b.date));
+  const withWeight = entries.filter(e => e.weight != null && e.weight !== '');
+  if (withWeight.length < 2) return '';
+
+  const points = withWeight.map(e => ({ label: fmtDateHuman(e.date).slice(0, 5), value: Number(e.weight) }));
+  const first = withWeight[0], last = withWeight[withWeight.length - 1];
+  const totalDelta = Number(last.weight) - Number(first.weight);
+  const days = daysBetween(first.date, last.date) || 1;
+  // темп считаем по всей истории, а не по последним двум замерам: недельные
+  // качели воды дают ±1 кг и превращают любой тренд в шум
+  const perWeek = (totalDelta / days) * 7;
+
+  const taperPoints = entries.filter(e => e.shoulders && e.waist)
+    .map(e => ({ label: fmtDateHuman(e.date).slice(0, 5), value: Math.round((e.shoulders / e.waist) * 1000) / 1000 }));
+
+  return `
+    <div class="section-label">Тело</div>
+    <div class="grid cols-3">
+      <div class="card kpi"><div class="kpi-label">Изменение веса <small>за ${days} ${plural(days, 'день', 'дня', 'дней')}</small></div>
+        <div class="big-number">${totalDelta > 0 ? '+' : totalDelta < 0 ? '−' : ''}${Math.abs(totalDelta).toFixed(1)}<span class="unit"> кг</span></div></div>
+      <div class="card kpi"><div class="kpi-label">Темп</div>
+        <div class="big-number">${perWeek > 0 ? '+' : perWeek < 0 ? '−' : ''}${Math.abs(perWeek).toFixed(2)}<span class="unit"> кг/нед</span></div></div>
+      <div class="card kpi"><div class="kpi-label">Замеров</div><div class="big-number">${entries.length}</div></div>
+    </div>
+    <div class="card mt16">
+      <div class="card-title">Вес по замерам</div>
+      ${lineChartSvg(points.slice(-20), { color: 'var(--cyan)', height: 140, valueFmt: v => v.toFixed(1) + ' кг' })}
+    </div>
+    ${taperPoints.length >= 2 ? `<div class="card mt16">
+      <div class="card-title">V-taper <small>плечи ÷ талия · растёт — уходит жир, а не мышцы</small></div>
+      ${lineChartSvg(taperPoints.slice(-20), { color: 'var(--green)', height: 120, valueFmt: v => v.toFixed(2) })}
+    </div>` : ''}`;
+}
+
+/* Тренировки по неделям: один день ничего не говорит, а восемь недель показывают,
+   держится ли ритм. Неделя считается с понедельника. */
+function weeklyActivityHtml() {
+  if (!state.workouts.length) return '';
+  const weeks = [];
+  const cursor = new Date();
+  // отматываем к понедельнику текущей недели
+  cursor.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7));
+  for (let i = 7; i >= 0; i--) {
+    const start = new Date(cursor); start.setDate(start.getDate() - i * 7);
+    const end = new Date(start); end.setDate(end.getDate() + 6);
+    const from = dateStr(start), to = dateStr(end);
+    const count = new Set(state.workouts.filter(w => w.date >= from && w.date <= to).map(w => w.date)).size;
+    weeks.push({ label: fmtDateHuman(from).slice(0, 5), value: count });
+  }
+  const avg = weeks.reduce((s, w) => s + w.value, 0) / weeks.length;
+  return `
+    <div class="section-label">Тренировки</div>
+    <div class="card">
+      <div class="card-title">Дней в зале по неделям <small>в среднем ${avg.toFixed(1)} в неделю за 8 недель</small></div>
+      ${barChartSvg(weeks, { color: 'var(--orange)', height: 130, valueFmt: v => v + ' ' + plural(v, 'день', 'дня', 'дней') })}
+    </div>`;
 }
 
 function moodChartHtml() {

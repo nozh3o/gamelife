@@ -112,6 +112,7 @@ function renderNutrition() {
       <button class="btn" data-add-food="search">${icon('search',15)} Найти по названию</button>
       <button class="btn" data-add-food="dict">${icon('book',15)} Мои блюда</button>
       <button class="btn" data-add-food="manual">${icon('edit',15)} Вручную</button>
+      ${repeatDayBtnHtml()}
     </div>
 
     <div class="section-label">Приёмы пищи <span class="chip">${entries.length}</span></div>
@@ -126,9 +127,47 @@ function renderNutrition() {
   });
   content().querySelectorAll('[data-add-food]').forEach(b =>
     b.addEventListener('click', () => openFoodAdd(b.dataset.addFood)));
+  const repeatBtn = document.getElementById('repeatPrevDay');
+  if (repeatBtn) repeatBtn.addEventListener('click', () => repeatPreviousDay());
 
   renderMealList(entries);
   renderNutProfile();
+}
+
+/* Ближайший предыдущий день с записями — не обязательно вчера: пропущенный
+   день не должен превращать кнопку в бесполезную. */
+function lastLoggedDayBefore(date) {
+  const dates = [...new Set(state.nutrition.entries.map(e => e.date))]
+    .filter(d => d < date).sort((a, b) => b.localeCompare(a));
+  return dates[0] || null;
+}
+
+/* Кнопка показывается только на пустом дне: когда что-то уже записано,
+   повтор всего дня почти всегда означает дубли. */
+function repeatDayBtnHtml() {
+  if (dayEntries().length) return '';
+  const prev = lastLoggedDayBefore(nutDate());
+  if (!prev) return '';
+  const isYesterday = daysBetween(prev, nutDate()) === 1;
+  return `<button class="btn" id="repeatPrevDay">${icon('history',15)} Повторить ${isYesterday ? 'вчерашний день' : fmtDateHuman(prev)}</button>`;
+}
+
+function repeatPreviousDay() {
+  const date = nutDate();
+  const prev = lastLoggedDayBefore(date);
+  if (!prev) return;
+  const src = state.nutrition.entries.filter(e => e.date === prev);
+  if (!src.length) return;
+  confirmAction(`Скопировать ${src.length} ${plural(src.length, 'приём', 'приёма', 'приёмов')} пищи с ${fmtDateHuman(prev)} на ${fmtDateHuman(date)}?`, () => {
+    mutate(() => {
+      src.forEach(e => addMealEntry({
+        title: e.title, grams: e.grams, date, time: e.time || '',
+        kcal: e.kcal, protein: e.protein, fat: e.fat, carbs: e.carbs,
+        per100: e.per100 || null, source: e.source || 'manual',
+      }));
+    });
+    toast(`Скопировано: ${src.length} ${plural(src.length, 'приём', 'приёма', 'приёмов')}`, 'green');
+  }, false);
 }
 
 const MACRO_RING_COLOR = { kcal: 'var(--gold)', protein: 'var(--accent-2)', fat: 'var(--orange)', carbs: 'var(--green)' };
@@ -160,12 +199,29 @@ function renderMealList(entries) {
         </div>
       </div>
       <div class="actions">
+        <button class="btn ghost small icon-only" data-meal-copy="${e.id}" title="Повторить в этот день">${icon('plus',14)}</button>
         <button class="btn ghost small icon-only" data-meal-edit="${e.id}" title="Изменить">${icon('edit',14)}</button>
         <button class="btn ghost small icon-only danger-text" data-meal-del="${e.id}" title="Удалить">${icon('x',13)}</button>
       </div>
     </div>`).join('')
     : `<div class="empty-hint">За этот день ничего не записано</div>`;
 
+  // повтор кладёт копию в открытый день сразу, без формы: смысл кнопки в том,
+  // чтобы не проходить восемь полей ради еды, которая уже записана один раз
+  wrap.querySelectorAll('[data-meal-copy]').forEach(b =>
+    b.addEventListener('click', () => {
+      const e = state.nutrition.entries.find(x => x.id === b.dataset.mealCopy);
+      if (!e) return;
+      mutate(() => {
+        addMealEntry({
+          title: e.title, grams: e.grams, date: nutDate(),
+          time: new Date().toTimeString().slice(0, 5),
+          kcal: e.kcal, protein: e.protein, fat: e.fat, carbs: e.carbs,
+          per100: e.per100 || null, source: e.source || 'manual',
+        });
+      });
+      toast(`«${e.title}» добавлено ещё раз`, 'green');
+    }));
   wrap.querySelectorAll('[data-meal-edit]').forEach(b =>
     b.addEventListener('click', () => {
       const e = state.nutrition.entries.find(x => x.id === b.dataset.mealEdit);
@@ -297,6 +353,9 @@ function openMealForm(existing, prefill) {
       <label class="field">Вес порции, г
         <input type="number" name="grams" step="1" min="1" value="${e.grams || 100}" required>
       </label>
+      <label class="field">Дата
+        <input type="date" name="date" value="${esc(e.date || nutDate())}" max="${todayStr()}">
+      </label>
       <label class="field">Время
         <input type="time" name="time" value="${esc(e.time || new Date().toTimeString().slice(0, 5))}">
       </label>
@@ -342,6 +401,7 @@ function openMealForm(existing, prefill) {
       const data = {
         title: String(f.get('title') || '').trim() || 'Приём пищи',
         grams,
+        date: String(f.get('date') || '') || nutDate(),
         time: f.get('time') || '',
         kcal: Number(f.get('kcal')) || 0,
         protein: Number(f.get('protein')) || 0,
@@ -365,6 +425,10 @@ function openMealForm(existing, prefill) {
           }
         }
       });
+      // запись ушла на другой день — иначе она просто исчезнет из списка без объяснения
+      if (data.date !== nutDate()) {
+        toast(`${isEdit ? 'Перенесено' : 'Записано'} на ${fmtDateHuman(data.date)}`, 'green');
+      }
       closeModal();
     });
   });
@@ -372,9 +436,9 @@ function openMealForm(existing, prefill) {
 
 /* Записываем приём пищи */
 function addMealEntry(data) {
-  const date = nutDate();
+  const date = data.date || nutDate();
   const first = dayEntries(date).length === 0;
-  state.nutrition.entries.push({ id: uid(), date, ...data });
+  state.nutrition.entries.push({ id: uid(), ...data, date });
 
   if (date === todayStr()) {
     if (first) addLog('🍽️', `Начат дневник питания на ${fmtDateHuman(date)}`);

@@ -81,6 +81,10 @@ function defaultState() {
       transactions: [],           // {id, date, time, amount, type: income|expense|transfer, category, note, accountId, toAccountId}
       customCategories: { income: [], expense: [] },  // {name, icon}
       budgets: [],                 // {id, category, limit} — лимит трат в месяц, category === '__total__' — общий лимит
+      // долги — обязательства, а не счета: они не входят в баланс и не должны
+      // на него влиять, пока деньги реально не ушли. {id, person, amount, paid,
+      // direction: 'owe' (я должен) | 'lent' (мне должны), dueDate, note}
+      debts: [],
     },
     journal: [],
     nutrition: {
@@ -89,6 +93,13 @@ function defaultState() {
       targets: { auto: true, kcal: 2000, protein: 120, fat: 65, carbs: 220 },
       entries: [],      // съеденное: по одной записи на приём пищи
       dictionary: [],   // личный словарь блюд для повторного добавления в один тап
+    },
+    body: {
+      // как часто напоминать про замер; 0 — не напоминать
+      settings: { everyDays: 10 },
+      // {id, date, weight, waist, shoulders, hips, note, createdAt} — любое поле,
+      // кроме даты, может быть пустым: замерил только вес — записали только вес
+      entries: [],
     },
     log: [],
     lastCron: todayStr(),
@@ -155,6 +166,7 @@ function normalize(parsed, d) {
   if (!Array.isArray(s.finance.accounts) || !s.finance.accounts.length) s.finance.accounts = d.finance.accounts.map(a => ({ ...a }));
   if (!Array.isArray(s.finance.transactions)) s.finance.transactions = [];
   if (!Array.isArray(s.finance.budgets)) s.finance.budgets = [];
+  if (!Array.isArray(s.finance.debts)) s.finance.debts = [];
   // старые операции могли быть записаны до появления счетов — привязываем к первому счёту
   // и пересчитываем его баланс, чтобы он совпадал с тем, что показывалось раньше
   const fallbackAccountId = s.finance.accounts[0].id;
@@ -184,6 +196,11 @@ function normalize(parsed, d) {
   s.sleep.profile = { ...d.sleep.profile, ...(ps.profile || {}) };
   if (!Array.isArray(s.sleep.entries)) s.sleep.entries = [];
   if (!s.sleep.active || typeof s.sleep.active !== 'object' || !s.sleep.active.bedAt) s.sleep.active = null;
+
+  const pb = parsed.body || {};
+  s.body = deepMergeDefaults(pb, d.body);
+  s.body.settings = { ...d.body.settings, ...(pb.settings || {}) };
+  if (!Array.isArray(s.body.entries)) s.body.entries = [];
 
   // массивы должны остаться массивами
   for (const key of ['habits', 'dailies', 'todos', 'goals', 'wishes', 'workouts', 'journal', 'log', 'agentInbox', 'deletedIds']) {

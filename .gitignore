@@ -5,3 +5,7 @@ gamelife-backup-*.json
 .claude/
 Thumbs.db
 desktop.ini
+
+# Локальная привязка к проекту Supabase (supabase link) — служебные файлы
+# конкретной машины, в том числе строка подключения к боевой базе
+supabase/.temp/

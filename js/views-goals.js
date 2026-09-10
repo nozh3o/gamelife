@@ -2,9 +2,23 @@
    views-goals.js — долгосрочные цели: числовые, простые и с этапами
    ========================================================================= */
 
+/* Прогресс числовой цели: либо то, что докидывали руками, либо баланс
+   привязанного счёта. Именно баланс, а не сумма пополнений: цифра в цели
+   должна равняться тому, что реально лежит на счету, иначе это счётчик
+   заработанного, а не накопленного. Отсюда и откат назад при снятии — он
+   честный. startBalance — снимок баланса в момент привязки: деньги, которые
+   лежали на счету до цели, прогрессом не считаются. */
+function goalCurrent(g) {
+  if (g.kind !== 'numeric') return g.current || 0;
+  if (!g.accountId) return g.current || 0;
+  const acc = financeAccount(g.accountId);
+  if (!acc) return g.current || 0;   // счёт удалили — показываем последнее ручное значение
+  return Math.max(0, (acc.balance || 0) - (g.startBalance || 0));
+}
+
 function goalPct(g) {
   if (g.done) return 100;
-  if (g.kind === 'numeric') return clamp(Math.round((g.current / (g.target || 1)) * 100), 0, 100);
+  if (g.kind === 'numeric') return clamp(Math.round((goalCurrent(g) / (g.target || 1)) * 100), 0, 100);
   if (g.kind === 'steps') {
     const total = (g.milestones || []).length || 1;
     const done = (g.milestones || []).filter(m => m.done).length;
@@ -16,6 +30,28 @@ function goalPct(g) {
 function daysLeft(g) {
   if (!g.deadline) return null;
   return daysBetween(todayStr(), g.deadline);
+}
+
+/* Темп: сколько осталось добрать и по сколько в месяц это выходит до дедлайна.
+   Процент прогресса говорит, где ты сейчас; темп — успеваешь ли ты вообще.
+   Разница между «собрано 20%» и «нужно по 850 тысяч в месяц» — это разница
+   между отчётом и решением. */
+function goalPaceHtml(g) {
+  if (g.done || g.kind !== 'numeric') return '';
+  const left = (g.target || 0) - goalCurrent(g);
+  if (left <= 0) return '';
+  const dl = daysLeft(g);
+  const unit = esc(g.unit || '');
+  if (dl === null) return `<div class="goal-pace">осталось ${fmtNum(left)} ${unit}</div>`;
+  if (dl < 0) return `<div class="goal-pace red-text">срок прошёл, не добрано ${fmtNum(left)} ${unit}</div>`;
+  const days = Math.max(1, dl);
+  const perDay = left / days;
+  const perMonth = perDay * 30;
+  // на коротком сроке «в месяц» — бессмыслица, там считаем по дням
+  const main = days >= 45
+    ? `${fmtNum(perMonth)} ${unit}/мес`
+    : `${fmtNum(perDay)} ${unit}/день`;
+  return `<div class="goal-pace">осталось ${fmtNum(left)} ${unit} · нужно ${main}</div>`;
 }
 
 function renderGoals() {
@@ -82,8 +118,10 @@ function goalCardHtml(g) {
 
     ${g.kind === 'numeric' ? `
       <div class="goal-numeric">
-        <div class="text-dim" style="font-size:13px;">${fmtNum(g.current)} / ${fmtNum(g.target)} ${esc(g.unit || '')}</div>
-        ${!g.done ? `<div class="goal-add-row">
+        <div class="text-dim" style="font-size:13px;">${fmtNum(goalCurrent(g))} / ${fmtNum(g.target)} ${esc(g.unit || '')}</div>
+        ${goalPaceHtml(g)}
+        ${goalLinkHtml(g)}
+        ${!g.done && !g.accountId ? `<div class="goal-add-row">
           <input type="number" step="any" data-goal-input="${g.id}" placeholder="сколько добавить">
           <button class="btn small" data-goal-add="${g.id}">${icon('plus',13)}</button>
         </div>` : ''}
@@ -99,6 +137,16 @@ function goalCardHtml(g) {
     ${g.kind === 'boolean' && !g.done ? `<button class="btn success small mt8" data-goal-finish="${g.id}">Отметить достигнутой</button>` : ''}
     ${g.done ? `<div class="chip green mt8">Достигнута ${fmtDateHuman(dateStr(new Date(g.doneAt)))}</div>` : ''}
   </div>`;
+}
+
+/* Подпись под привязанной целью: без неё непонятно, почему поле ручного
+   ввода пропало и откуда берётся цифра. */
+function goalLinkHtml(g) {
+  if (g.kind !== 'numeric' || !g.accountId) return '';
+  const acc = financeAccount(g.accountId);
+  if (!acc) return `<div class="goal-pace red-text">счёт удалён — цель отвязана, цифра больше не обновляется</div>`;
+  const start = g.startBalance || 0;
+  return `<div class="goal-pace">${icon('bank',12)} считается по счёту «${esc(acc.name)}»${start ? ` · старт ${fmtMoney(start)} не в счёт` : ''}</div>`;
 }
 
 function bindGoalHandlers() {
@@ -141,6 +189,16 @@ function completeGoal(g) {
   toast(`Цель достигнута: ${g.title}!`, 'gold');
   confetti(110);
   SFX.achieve();
+}
+
+/* Вызывается из mutate() после любого изменения состояния. Внутрь mutate()
+   не заворачиваем — мы уже внутри него, иначе получилась бы рекурсия. */
+function checkLinkedGoals() {
+  if (!state.goals) return;
+  state.goals.forEach(g => {
+    if (g.done || g.kind !== 'numeric' || !g.accountId) return;
+    if (goalCurrent(g) >= (g.target || 0)) completeGoal(g);
+  });
 }
 
 function addGoalProgress(id, amount) {
@@ -196,6 +254,16 @@ function openGoalForm(id) {
       <label class="field goal-num">Единица измерения
         <input type="text" name="unit" value="${esc(g.unit || '')}" placeholder="₸, км, книг">
       </label>
+      <label class="field goal-num" style="grid-column: 1/-1;">Откуда брать прогресс
+        <select name="accountId">
+          <option value="">Считаю сам — добавляю вручную</option>
+          ${state.finance.accounts.map(a => `<option value="${a.id}" ${g.accountId === a.id ? 'selected' : ''}>По счёту «${esc(a.name)}» — ${fmtMoney(a.balance || 0)}</option>`).join('')}
+        </select>
+      </label>
+      <p class="text-dim goal-num" style="grid-column:1/-1;font-size:12.5px;margin:-4px 0 0;">
+        Привязка к счёту: прогрессом считается прирост баланса с этого момента.
+        То, что уже лежит на счету, не засчитывается, а снятие откатывает цель назад.
+      </p>
       <label class="field goal-steps" style="grid-column: 1/-1;">Этапы — по одному на строку
         <textarea name="milestones" rows="3" placeholder="Собрать документы&#10;Пройти собеседование">${esc((g.milestones || []).map(m => m.text).join('\n'))}</textarea>
       </label>
@@ -242,9 +310,20 @@ function openGoalForm(id) {
         milestones: kind === 'steps' ? milestones : [],
         moneyReward: Number(f.get('moneyReward')) || 0,
         deadline: f.get('deadline') || null,
+        accountId: kind === 'numeric' ? String(f.get('accountId') || '') : '',
       };
 
       mutate(() => {
+        // startBalance снимаем в момент привязки, а не создания цели: иначе
+        // при переключении «считаю сам» → «по счёту» весь баланс счёта разом
+        // засчитался бы как прогресс
+        const wasLinkedTo = existing ? (existing.accountId || '') : '';
+        if (data.accountId && data.accountId !== wasLinkedTo) {
+          const acc = financeAccount(data.accountId);
+          data.startBalance = acc ? (acc.balance || 0) : 0;
+        } else if (!data.accountId) {
+          data.startBalance = 0;
+        }
         if (existing) Object.assign(existing, data);
         else {
           state.goals.push({ id: uid(), ...data, current: 0, progressLog: [], done: false, doneAt: null, createdAt: nowISO() });

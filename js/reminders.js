@@ -81,6 +81,13 @@ function eveningSummaryParts() {
   if (overdueTodos.length) {
     parts.push(`${overdueTodos.length} просрочено`);
   }
+  // замер сам о себе не напомнит: он не привязан ни к задаче, ни к ежедневке,
+  // а пропущенный замер обесценивает весь график веса
+  const due = typeof measureDueIn === 'function' ? measureDueIn() : null;
+  if (due != null && due <= 0) {
+    const over = -due;
+    parts.push(over === 0 ? 'сегодня день замера' : `замер просрочен на ${over} ${plural(over, 'день', 'дня', 'дней')}`);
+  }
   return parts;
 }
 

@@ -152,6 +152,9 @@ function renderFinance() {
     <div class="section-label">Лимиты трат <button class="btn small" id="addBudget" style="margin-left:8px;">${icon('plus',13)} Добавить</button></div>
     <div class="grid cols-3" id="budgetGrid"></div>
 
+    <div class="section-label">Долги <button class="btn small" id="addDebt" style="margin-left:8px;">${icon('plus',13)} Добавить</button></div>
+    <div class="list" id="debtList"></div>
+
     <div class="grid cols-2 mt16">
       <div class="card">
         <div class="card-title">Доходы и расходы по месяцам</div>
@@ -187,12 +190,192 @@ function renderFinance() {
   document.getElementById('addTx').addEventListener('click', () => openTxForm());
   document.getElementById('addAccount').addEventListener('click', () => openAccountForm());
   document.getElementById('addBudget').addEventListener('click', () => openBudgetForm());
+  document.getElementById('addDebt').addEventListener('click', () => openDebtForm());
   document.getElementById('monthFilter').addEventListener('change', e => { financeMonthFilter = e.target.value; renderTxList(); });
   document.getElementById('accFilter').addEventListener('change', e => { financeAccountFilter = e.target.value; renderTxList(); });
 
   renderAccountsRow();
   renderBudgets();
+  renderDebts();
   renderTxList();
+}
+
+/* ---- Долги ------------------------------------------------------------------
+   Намеренно не счета: пока деньги не отданы, долг не должен ни прибавляться
+   к балансу, ни вычитаться из него — иначе баланс перестаёт отвечать на
+   вопрос «сколько у меня сейчас есть». Погашение по желанию проводится
+   расходом, и только тогда трогает счёт. */
+function debtLeft(d) {
+  return Math.max(0, (d.amount || 0) - (d.paid || 0));
+}
+
+function renderDebts() {
+  const wrap = document.getElementById('debtList');
+  if (!wrap) return;
+  const debts = [...state.finance.debts].sort((a, b) => {
+    const openDiff = (debtLeft(b) > 0) - (debtLeft(a) > 0);
+    return openDiff || (a.dueDate || '9999').localeCompare(b.dueDate || '9999');
+  });
+
+  if (!debts.length) {
+    wrap.innerHTML = `<div class="empty-hint">Долгов нет. Если есть — заведи, чтобы они не жили только в голове.</div>`;
+    return;
+  }
+
+  const owe = debts.filter(d => d.direction !== 'lent').reduce((s, d) => s + debtLeft(d), 0);
+  const lent = debts.filter(d => d.direction === 'lent').reduce((s, d) => s + debtLeft(d), 0);
+
+  wrap.innerHTML = `
+    <div class="grid cols-2" style="margin-bottom:10px;">
+      <div class="card kpi"><div class="kpi-label">Я должен</div><div class="big-number red-text">${fmtMoney(owe)}</div></div>
+      <div class="card kpi"><div class="kpi-label">Мне должны</div><div class="big-number green-text">${fmtMoney(lent)}</div></div>
+    </div>
+    ${debts.map(debtRowHtml).join('')}`;
+
+  wrap.querySelectorAll('[data-debt-pay]').forEach(b =>
+    b.addEventListener('click', () => openDebtPayForm(b.dataset.debtPay)));
+  wrap.querySelectorAll('[data-debt-edit]').forEach(b =>
+    b.addEventListener('click', () => openDebtForm(b.dataset.debtEdit)));
+  wrap.querySelectorAll('[data-debt-del]').forEach(b =>
+    b.addEventListener('click', () => {
+      const d = state.finance.debts.find(x => x.id === b.dataset.debtDel);
+      if (!d) return;
+      confirmAction(`Удалить долг «${d.person}»?`, () => mutate(() => {
+        state.finance.debts = state.finance.debts.filter(x => x.id !== d.id);
+        markDeleted(d.id);
+      }));
+    }));
+}
+
+function debtRowHtml(d) {
+  const left = debtLeft(d);
+  const closed = left <= 0;
+  const pct = d.amount ? clamp(Math.round(((d.paid || 0) / d.amount) * 100), 0, 100) : 0;
+  const lent = d.direction === 'lent';
+  const dl = d.dueDate ? daysBetween(todayStr(), d.dueDate) : null;
+  const overdue = !closed && dl !== null && dl < 0;
+  return `<div class="row-item ${closed ? 'is-done' : ''}">
+    <span class="ic-badge">${icon(lent ? 'upload' : 'download', 16)}</span>
+    <div class="main">
+      <div class="title">${esc(d.person)} <span class="text-dim">· ${lent ? 'мне должны' : 'я должен'}</span></div>
+      <div class="meta">
+        <span class="chip ${closed ? 'green' : lent ? '' : 'red'}">${closed ? 'закрыт' : fmtMoney(left)}</span>
+        ${d.paid ? `<span class="chip">погашено ${fmtMoney(d.paid)} из ${fmtMoney(d.amount)}</span>` : `<span class="chip">всего ${fmtMoney(d.amount)}</span>`}
+        ${d.dueDate ? `<span class="chip ${overdue ? 'red' : ''}">${icon(overdue ? 'alert' : 'calendar', 12)} ${fmtDateHuman(d.dueDate)}</span>` : ''}
+      </div>
+      ${!closed && d.paid ? barHtml(pct, 'green') : ''}
+      ${d.note ? `<div class="note-line">${esc(d.note)}</div>` : ''}
+    </div>
+    <div class="actions">
+      ${!closed ? `<button class="btn ghost small" data-debt-pay="${d.id}">${lent ? 'Вернули' : 'Погасить'}</button>` : ''}
+      <button class="btn ghost small icon-only" data-debt-edit="${d.id}" title="Изменить">${icon('edit',14)}</button>
+      <button class="btn ghost small icon-only danger-text" data-debt-del="${d.id}" title="Удалить">${icon('x',13)}</button>
+    </div>
+  </div>`;
+}
+
+function openDebtForm(id) {
+  const existing = id ? state.finance.debts.find(x => x.id === id) : null;
+  const d = existing || {};
+  openModal(existing ? 'Изменить долг' : 'Новый долг', `
+    <form id="debtForm" class="form-grid">
+      <label class="field" style="grid-column:1/-1;">Кому или кто
+        <input type="text" name="person" value="${esc(d.person || '')}" placeholder="Например: Жангуль" required autofocus>
+      </label>
+      <label class="field">Направление
+        <select name="direction">
+          <option value="owe" ${d.direction !== 'lent' ? 'selected' : ''}>Я должен</option>
+          <option value="lent" ${d.direction === 'lent' ? 'selected' : ''}>Мне должны</option>
+        </select>
+      </label>
+      <label class="field">Сумма
+        <input type="number" name="amount" step="0.01" min="0" value="${d.amount ?? ''}" required>
+      </label>
+      <label class="field">Уже погашено
+        <input type="number" name="paid" step="0.01" min="0" value="${d.paid ?? 0}">
+      </label>
+      <label class="field">Срок (необязательно)
+        <input type="date" name="dueDate" value="${esc(d.dueDate || '')}">
+      </label>
+      <label class="field" style="grid-column:1/-1;">Заметка
+        <input type="text" name="note" value="${esc(d.note || '')}" placeholder="За что и на каких условиях">
+      </label>
+      <div class="form-actions" style="grid-column:1/-1;">
+        <button type="button" class="btn ghost" data-cancel>Отмена</button>
+        <button type="submit" class="btn primary">${icon('save',15)} Сохранить</button>
+      </div>
+    </form>`, modal => {
+    modal.querySelector('[data-cancel]').addEventListener('click', closeModal);
+    modal.querySelector('#debtForm').addEventListener('submit', ev => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const person = String(f.get('person') || '').trim();
+      const amount = Number(f.get('amount')) || 0;
+      if (!person || amount <= 0) { toast('Нужны имя и сумма', 'red'); return; }
+      const data = {
+        person, amount,
+        paid: clamp(Number(f.get('paid')) || 0, 0, amount),
+        direction: f.get('direction') === 'lent' ? 'lent' : 'owe',
+        dueDate: String(f.get('dueDate') || ''),
+        note: String(f.get('note') || '').trim(),
+      };
+      mutate(() => {
+        if (existing) Object.assign(existing, data);
+        else state.finance.debts.push({ id: uid(), ...data, createdAt: nowISO() });
+      });
+      closeModal();
+    });
+  });
+}
+
+function openDebtPayForm(id) {
+  const d = state.finance.debts.find(x => x.id === id);
+  if (!d) return;
+  const left = debtLeft(d);
+  const lent = d.direction === 'lent';
+  openModal(lent ? `${d.person} возвращает` : `Погасить долг · ${d.person}`, `
+    <form id="debtPayForm" class="form-grid">
+      <label class="field">Сумма
+        <input type="number" name="amount" step="0.01" min="0.01" max="${left}" value="${left}" required autofocus>
+      </label>
+      <label class="field">Счёт
+        <select name="accountId">
+          ${state.finance.accounts.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('')}
+        </select>
+      </label>
+      <div class="field" style="grid-column:1/-1;">
+        <label class="switch"><input type="checkbox" name="asTx" checked>
+          <span>Провести по счёту как ${lent ? 'доход' : 'расход'}</span></label>
+      </div>
+      <p class="text-dim" style="grid-column:1/-1;font-size:12.5px;margin:0;">
+        Без галочки долг просто уменьшится, баланс счёта не изменится —
+        так удобно, если деньги уже проведены другой операцией.
+      </p>
+      <div class="form-actions" style="grid-column:1/-1;">
+        <button type="button" class="btn ghost" data-cancel>Отмена</button>
+        <button type="submit" class="btn primary">${icon('check',15)} Записать</button>
+      </div>
+    </form>`, modal => {
+    modal.querySelector('[data-cancel]').addEventListener('click', closeModal);
+    modal.querySelector('#debtPayForm').addEventListener('submit', ev => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const amount = clamp(Number(f.get('amount')) || 0, 0, left);
+      if (amount <= 0) { toast('Укажи сумму', 'red'); return; }
+      const asTx = !!f.get('asTx');
+      const accountId = String(f.get('accountId') || '');
+      mutate(() => {
+        d.paid = (d.paid || 0) + amount;
+        if (asTx) {
+          addTransaction(amount, lent ? 'income' : 'expense', lent ? 'Возврат долга' : 'Долги',
+            `${lent ? 'Вернул' : 'Погашение'} · ${d.person}`, todayStr(), true, accountId);
+        }
+        if (debtLeft(d) <= 0) addLog('💸', `Долг закрыт: ${d.person}`);
+      });
+      closeModal();
+      toast(debtLeft(d) <= 0 ? `Долг «${d.person}» закрыт` : `Осталось ${fmtMoney(debtLeft(d))}`, 'green');
+    });
+  });
 }
 
 /* ---- Счета ------------------------------------------------------------------ */

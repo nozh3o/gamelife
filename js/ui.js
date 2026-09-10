@@ -49,6 +49,8 @@ const ICONS = {
   save: '<path d="M5 4.5h11l3.5 3.5v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M8 4.5v5h7v-5"/><path d="M8 20v-6h8v6"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.3"/><path d="M12 19.2v2.3"/><path d="M4.6 4.6l1.6 1.6"/><path d="M17.8 17.8l1.6 1.6"/><path d="M2.5 12h2.3"/><path d="M19.2 12h2.3"/><path d="M4.6 19.4l1.6-1.6"/><path d="M17.8 6.2l1.6-1.6"/>',
   moon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
+  ruler: '<rect x="2.5" y="7" width="19" height="10" rx="1.5"/><path d="M7 7v3"/><path d="M12 7v4"/><path d="M17 7v3"/>',
+  history: '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4.5V10h5.5"/><path d="M12 7.5V12l3 2"/>',
   volume: '<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/>',
   download: '<path d="M12 3.5v11.5"/><path d="M7 10.5l5 5 5-5"/><path d="M4.5 19.5h15"/>',
   upload: '<path d="M12 19.5V8"/><path d="M7 13l5-5 5 5"/><path d="M4.5 19.5h15"/>',
@@ -253,6 +255,36 @@ function barChartSvg(data, { height = 140, color = 'var(--accent)', valueFmt = f
   return `<div class="chart">
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="height:${height}px" class="chart-svg">${bars}</svg>
     <div class="chart-labels">${labels}</div>
+  </div>`;
+}
+
+/* Линейный график: в отличие от barChartSvg считает не от нуля, а от диапазона
+   самих значений. Для веса тела это обязательно — столбики от нуля на 102 и
+   104 кг выглядят одинаково, а вся суть как раз в этих двух килограммах.
+   data = [{label, value}], значения уже отсортированы по времени. */
+function lineChartSvg(data, { height = 140, color = 'var(--accent)', valueFmt = fmtNum } = {}) {
+  const pts = data.filter(d => d.value != null);
+  if (pts.length < 2) return `<div class="empty-hint">Нужно хотя бы два замера, чтобы построить линию</div>`;
+  const vals = pts.map(d => d.value);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  // при одинаковых значениях линия должна идти посередине, а не делиться на ноль
+  const span = (max - min) || 1;
+  const pad = span * 0.15;
+  const lo = min - pad, hi = max + pad;
+  const x = i => (pts.length === 1 ? 50 : (i / (pts.length - 1)) * 100);
+  const y = v => 100 - ((v - lo) / (hi - lo)) * 100;
+  const line = pts.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(2)},${y(d.value).toFixed(2)}`).join(' ');
+  const area = `${line} L100,100 L0,100 Z`;
+  const dots = pts.map((d, i) => `<circle cx="${x(i).toFixed(2)}" cy="${y(d.value).toFixed(2)}" r="1.6"
+      fill="${color}" vector-effect="non-scaling-stroke"><title>${esc(d.label)}: ${valueFmt(d.value)}</title></circle>`).join('');
+  return `<div class="chart">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="height:${height}px" class="chart-svg">
+      <path d="${area}" fill="${color}" opacity=".12"></path>
+      <path d="${line}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"
+        stroke-linejoin="round" stroke-linecap="round"></path>
+      ${dots}
+    </svg>
+    <div class="chart-labels">${pts.map(d => `<span>${esc(d.label)}</span>`).join('')}</div>
   </div>`;
 }
 

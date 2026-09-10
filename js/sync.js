@@ -230,9 +230,10 @@ function hasRealContent(s) {
    категория никогда не перетирает настоящие данные. */
 const CATEGORY_PATHS = [
   ['todos'], ['dailies'], ['habits'], ['goals'], ['wishes'], ['workouts'], ['journal'],
-  ['finance', 'transactions'], ['finance', 'budgets'],
+  ['finance', 'transactions'], ['finance', 'budgets'], ['finance', 'debts'],
   ['nutrition', 'entries'], ['nutrition', 'dictionary'],
   ['sleep', 'entries'],
+  ['body', 'entries'],
 ];
 function getPath(obj, path) {
   return path.reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), obj);
