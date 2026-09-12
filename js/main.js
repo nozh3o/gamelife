@@ -28,7 +28,7 @@ function mutate(fn) {
    команды молча пропадали, потому что очередь чистилась целиком. */
 const KNOWN_AGENT_KINDS = new Set([
   'transaction', 'workout', 'meal', 'meal_update', 'meal_delete',
-  'task', 'journal', 'goal', 'wish', 'habit_log', 'daily_done',
+  'task', 'journal', 'goal', 'wish', 'habit_log', 'daily_done', 'measurement',
 ]);
 
 function processAgentInbox() {
@@ -127,6 +127,28 @@ function applyAgentItem(item) {
     toast(patch.date
       ? `Клод перенёс «${p.title}» на ${fmtDateHuman(patch.date)}`
       : `Клод поправил «${p.title}»`, 'gold');
+  } else if (item.kind === 'measurement') {
+    // На одну дату — один замер, то же правило, что и в форме. Поэтому запись
+    // от Клода не плодит вторую строку за день, а дописывает поля в ту, что уже
+    // есть: этим же путём диктуется «в замер от 6 августа добавь грудь 118».
+    // Пустые поля не трогаются — замер частичный по своей природе, и обнулять
+    // то, о чём не сказали, значит терять данные.
+    const date = String(p.date || '').trim() || todayStr();
+    const patch = {};
+    ['weight', 'neck', 'shoulders', 'chest', 'biceps', 'waist', 'hips'].forEach(k => {
+      if (p[k] == null || p[k] === '') return;
+      const num = Number(p[k]);
+      if (isFinite(num) && num > 0) patch[k] = num;
+    });
+    if (p.note != null && String(p.note).trim()) patch.note = String(p.note).trim();
+    if (!Object.keys(patch).length) return;
+    const existing = state.body.entries.find(e => e.date === date);
+    if (existing) Object.assign(existing, patch);
+    else state.body.entries.push({ id: uid(), date, note: '', ...patch, createdAt: nowISO() });
+    // свежий вес уезжает в профиль питания той же дорогой, что и при ручном вводе
+    syncWeightToNutrition();
+    addLog('📏', `Замер записан Клодом: ${fmtDateHuman(date)}`);
+    toast(`Клод ${existing ? 'дополнил' : 'записал'} замер за ${fmtDateHuman(date)}`, 'gold');
   } else if (item.kind === 'task') {
     const title = String(p.title || '').trim();
     if (!title) return;

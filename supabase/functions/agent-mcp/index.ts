@@ -134,6 +134,24 @@ const TOOLS = [
     },
   },
   {
+    name: "add_measurement",
+    description: "Записать замер тела в One. Все обхваты необязательные — пиши только то, что реально померили. На одну дату замер один: если за эту дату запись уже есть, поля дописываются в неё, а не создаётся вторая. Так же дополняется старый замер — укажи его дату и недостающие поля. Вес автоматически уходит в профиль питания и пересчитывает суточную норму.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Дата YYYY-MM-DD, по умолчанию сегодня" },
+        weight: { type: "number", description: "Вес, кг" },
+        neck: { type: "number", description: "Шея, см — без неё не считается процент жира" },
+        shoulders: { type: "number", description: "Плечи, см" },
+        chest: { type: "number", description: "Грудь, см" },
+        biceps: { type: "number", description: "Бицепс, см" },
+        waist: { type: "number", description: "Талия, см" },
+        hips: { type: "number", description: "Бёдра, см" },
+        note: { type: "string", description: "Заметка, необязательно. Заменяет прежнюю заметку этого замера" },
+      },
+    },
+  },
+  {
     name: "get_day",
     description: "Прочитать сводку дня из приложения One: съеденное с суммой КБЖУ и нормой, тренировка, сон, замер тела (все обхваты, V-taper или талия ÷ бёдра, процент жира), задачи на этот день. Читай перед тем, как записывать еду — иначе не видно, что уже записано.",
     inputSchema: {
@@ -261,6 +279,7 @@ const TOOL_KIND: Record<string, string> = {
   add_meal: "meal",
   update_meal: "meal_update",
   delete_meal: "meal_delete",
+  add_measurement: "measurement",
   add_task: "task",
   add_journal_entry: "journal",
   add_goal: "goal",
