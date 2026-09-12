@@ -119,7 +119,7 @@ function computeActivityStreak(counts) {
   return streak;
 }
 
-/* Тело: вес по замерам и V-taper рядом. Разнесённые по разным экранам, эти два
+/* Тело: вес по замерам и показатель формы рядом. Разнесённые по разным экранам, эти два
    числа ничего не значат — вместе они отвечают на вопрос «уходит жир или мышцы».
    Раздел не показывается, пока замеров меньше двух: одна точка — не динамика. */
 function bodyStatsHtml() {
@@ -135,8 +135,10 @@ function bodyStatsHtml() {
   // качели воды дают ±1 кг и превращают любой тренд в шум
   const perWeek = (totalDelta / days) * 7;
 
-  const taperPoints = entries.filter(e => e.shoulders && e.waist)
-    .map(e => ({ label: fmtDateHuman(e.date).slice(0, 5), value: Math.round((e.shoulders / e.waist) * 1000) / 1000 }));
+  // какой именно показатель формы рисуем, решает пол в профиле: см. shapeMetric()
+  const shape = shapeMetric();
+  const shapePoints = entries.filter(e => shape.of(e) != null)
+    .map(e => ({ label: fmtDateHuman(e.date).slice(0, 5), value: Math.round(shape.of(e) * 1000) / 1000 }));
 
   return `
     <div class="section-label">Тело</div>
@@ -151,9 +153,9 @@ function bodyStatsHtml() {
       <div class="card-title">Вес по замерам</div>
       ${lineChartSvg(points.slice(-20), { color: 'var(--cyan)', height: 140, valueFmt: v => v.toFixed(1) + ' кг' })}
     </div>
-    ${taperPoints.length >= 2 ? `<div class="card mt16">
-      <div class="card-title">V-taper <small>плечи ÷ талия · растёт — уходит жир, а не мышцы</small></div>
-      ${lineChartSvg(taperPoints.slice(-20), { color: 'var(--green)', height: 120, valueFmt: v => v.toFixed(2) })}
+    ${shapePoints.length >= 2 ? `<div class="card mt16">
+      <div class="card-title">${shape.label} <small>${shape.note}</small></div>
+      ${lineChartSvg(shapePoints.slice(-20), { color: 'var(--green)', height: 120, valueFmt: v => v.toFixed(2) })}
     </div>` : ''}`;
 }
 

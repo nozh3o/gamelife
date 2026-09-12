@@ -97,8 +97,9 @@ function defaultState() {
     body: {
       // как часто напоминать про замер; 0 — не напоминать
       settings: { everyDays: 10 },
-      // {id, date, weight, waist, shoulders, hips, note, createdAt} — любое поле,
-      // кроме даты, может быть пустым: замерил только вес — записали только вес
+      // {id, date, weight, neck, shoulders, chest, biceps, waist, hips, note,
+      // createdAt} — любое поле, кроме даты, может быть пустым: замерил только
+      // вес — записали только вес
       entries: [],
     },
     log: [],
