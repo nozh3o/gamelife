@@ -124,10 +124,16 @@ function renderTaskLists() {
     const items = state.todos.filter(t => (t.date || todayStr()) === day).filter(matchesFilter);
     const active = items.filter(t => !t.done).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const done = items.filter(t => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
-    const emptyMsg = day === todayStr() ? 'Пока пусто — самое время добавить дело'
+    // заглушку считаем уже зная, есть ли блок просрочки над ней: «пока пусто»
+    // под четырьмя висящими задачами — прямая неправда, из-за неё день
+    // выглядит закрытым, хотя закрыто в нём ровно ничего
+    const overdueHtml = overdueBlockHtml(day);
+    const emptyMsg = day === todayStr()
+      ? (overdueHtml ? 'На сегодня новых задач нет — выше то, что осталось с прошлых дней'
+                     : 'Пока пусто — самое время добавить дело')
       : day < todayStr() ? 'В этот день задач не было'
       : 'Пока ничего не запланировано';
-    list.innerHTML = overdueBlockHtml(day)
+    list.innerHTML = overdueHtml
       // важно вызывать через стрелку: map передаёт вторым аргументом индекс,
       // а вторым параметром todoCardHtml идёт признак просрочки
       + (active.length ? active.map(t => todoCardHtml(t)).join('') : `<div class="task-day-empty">${emptyMsg}</div>`)
