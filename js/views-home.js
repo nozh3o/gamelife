@@ -28,7 +28,7 @@ function renderHome() {
 
     ${quickBarHtml()}
 
-    <div class="add-row" style="margin-top:0;">
+    <div class="add-row quick-actions">
       <button class="btn primary" data-quick="expense">${icon('wallet', 15)} Трата</button>
       <button class="btn" data-quick="meal">${icon('utensils', 15)} Приём пищи</button>
       <button class="btn" data-quick="journal">${icon('book', 15)} Запись в журнал</button>
@@ -156,7 +156,7 @@ const BANGKOK_DEPARTURE = new Date(2026, 10, 30, 0, 0, 0);
 let bangkokTimer = null;
 
 function bangkokCountdownHtml() {
-  return `<div class="card countdown-card" id="bangkokCountdown">
+  return `<div class="card countdown-card mt16" id="bangkokCountdown">
     <div class="card-title">${icon('plane',16)} До Бангкока <small>вылет 30 ноября</small></div>
     <div class="countdown-grid">
       <div class="countdown-cell"><div class="countdown-num" id="cdDays">0</div><div class="countdown-label">дней</div></div>

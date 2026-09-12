@@ -985,6 +985,16 @@ body::before {
 
 .add-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .add-row .btn { flex: 1; min-width: 140px; justify-content: center; }
+/* Ряд крупных кнопок под строкой быстрого ввода — часть той же зоны ввода,
+   поэтому отступ сверху меньше обычного, а от карточек ниже отделяем полным. */
+.add-row.quick-actions { gap: 10px; margin-top: 12px; }
+/* На широком экране кнопки жмутся по тексту и стоят слева — как ряд подсказок
+   над ними: это ярлыки к вводу, а не главное действие экрана. */
+.add-row.quick-actions .btn { flex: 0 0 auto; min-width: 0; }
+@media (max-width: 560px) {
+  /* На телефоне наоборот — во всю ширину, чтобы попадать пальцем. */
+  .add-row.quick-actions .btn { flex: 1; min-width: 140px; }
+}
 
 .inline-date {
   padding: 9px 12px; border-radius: 13px;
