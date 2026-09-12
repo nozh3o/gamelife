@@ -349,6 +349,19 @@ function toolResultText(name: string, args: Record<string, unknown>) {
   if (name === "add_meal") return `Приём пищи «${args.title}»`;
   if (name === "update_meal") return `Правка приёма «${args.title}» за ${args.date}`;
   if (name === "delete_meal") return `Удаление приёма «${args.title}» за ${args.date}`;
+  if (name === "add_measurement") {
+    // у замера нет названия, а перечислять все поля незачем — важно, за какую
+    // дату он лёг и что именно в нём записано, иначе подтверждение пустое
+    const fields: Array<[string, string]> = [
+      ["weight", "вес"], ["neck", "шея"], ["shoulders", "плечи"], ["chest", "грудь"],
+      ["biceps", "бицепс"], ["waist", "талия"], ["hips", "бёдра"],
+    ];
+    const listed = fields
+      .filter(([k]) => args[k] != null && args[k] !== "")
+      .map(([k, label]) => `${label} ${args[k]}`)
+      .join(", ");
+    return `Замер за ${args.date ?? "сегодня"}${listed ? ": " + listed : ""}`;
+  }
   if (name === "add_task") return `Задача «${args.title}»`;
   if (name === "add_journal_entry") return `Запись в дневнике`;
   if (name === "add_goal") return `Цель «${args.title}»`;
