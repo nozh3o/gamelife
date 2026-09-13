@@ -189,6 +189,17 @@ const TOOLS = [
     },
   },
   {
+    name: "get_health",
+    description: "Прочитать показатели Apple Health с часов по дням: кольца активности (активные калории, минуты тренировки, часы стоя), шаги, пульс покоя и максимальный, минуты сна, вес. Поле watchWorn говорит, были ли в этот день часы на руке: если false, пустые показатели означают отсутствие измерения, а не отсутствие движения — считать их нулями нельзя. По умолчанию за последние две недели.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        from: { type: "string", description: "Дата начала YYYY-MM-DD, по умолчанию 14 дней назад" },
+        to: { type: "string", description: "Дата конца YYYY-MM-DD, по умолчанию сегодня" },
+      },
+    },
+  },
+  {
     name: "list_tasks",
     description: "Прочитать невыполненные задачи из One — на сегодня и просроченные.",
     inputSchema: { type: "object", properties: {} },
@@ -309,6 +320,7 @@ const READ_KIND: Record<string, string> = {
   list_meals: "meals",
   get_profile: "profile",
   list_measurements: "measurements",
+  get_health: "health",
   list_tasks: "tasks",
 };
 
