@@ -161,7 +161,7 @@ function habitCardHtml(h) {
   return `<div class="task-card habit ${toneClass}">
     <div class="task-body">
       <div class="task-title">${esc(h.title)}</div>
-      ${h.note ? `<div class="task-note">${esc(h.note)}</div>` : ''}
+      ${noteHtml(h.note)}
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
     </div>
     <div class="task-actions">
@@ -173,6 +173,21 @@ function habitCardHtml(h) {
       ${h.negative ? `<button class="pm-btn down" data-habit-down="${h.id}" title="Сорвался">${icon('minus',16)}</button>` : ''}
     </div>
   </div>`;
+}
+
+/* Длинная заметка сворачивается до двух строк: карточки не должны
+   растягиваться на пол-экрана из-за подробного примечания от ассистента.
+   Порог 90 символов — короткие заметки лучше видеть целиком, без клика. */
+const NOTE_CLAMP_CHARS = 90;
+
+function noteHtml(note, strike = false) {
+  if (!note) return '';
+  const cls = `task-note ${strike ? 'strike' : ''}`;
+  if (note.length <= NOTE_CLAMP_CHARS) return `<div class="${cls}">${esc(note)}</div>`;
+  return `<div class="note-wrap">
+      <div class="${cls} clampable" data-note>${esc(note)}</div>
+      <button type="button" class="note-toggle" data-note-toggle>ещё</button>
+    </div>`;
 }
 
 function dailyCardHtml(d) {
@@ -188,7 +203,7 @@ function dailyCardHtml(d) {
   return `<div class="task-card daily ${done ? 'is-done' : ''} ${!due ? 'not-due' : ''}">
     <div class="task-body">
       <div class="task-title ${done ? 'strike' : ''}">${esc(d.title)}</div>
-      ${d.note ? `<div class="task-note ${done ? 'strike' : ''}">${esc(d.note)}</div>` : ''}
+      ${noteHtml(d.note, done)}
       ${(d.checklist || []).length ? `<div class="checklist">${d.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="daily:${d.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
@@ -237,7 +252,7 @@ function todoCardHtml(t, overdue = false) {
     <div class="task-body">
       <div class="task-title ${t.done ? 'strike' : ''}">${esc(t.title)}</div>
       ${overdue ? `<div class="task-overdue-line">${icon('clock',11)} с ${fmtDateHuman(t.date)} · ${age} ${plural(age, 'день', 'дня', 'дней')}</div>` : ''}
-      ${t.note ? `<div class="task-note ${t.done ? 'strike' : ''}">${esc(t.note)}</div>` : ''}
+      ${noteHtml(t.note, t.done)}
       ${(t.checklist || []).length ? `<div class="checklist">${t.checklist.map(c =>
         `<label class="cl-item"><input type="checkbox" ${c.done ? 'checked' : ''} data-cl="todo:${t.id}:${c.id}"><span>${esc(c.text)}</span></label>`).join('')}</div>` : ''}
       ${subParts.length ? `<div class="task-sub">${subParts.join('')}</div>` : ''}
@@ -264,6 +279,11 @@ function bindTaskHandlers() {
     const from = t.date;
     mutate(() => { t.date = todayStr(); t.movedFrom = t.movedFrom || from; });
     toast(`«${t.title}» перенесена с ${fmtDateHuman(from)} на сегодня`, 'gold');
+  }));
+  root.querySelectorAll('[data-note-toggle]').forEach(b => b.addEventListener('click', () => {
+    const note = b.previousElementSibling;
+    const open = note.classList.toggle('open');
+    b.textContent = open ? 'свернуть' : 'ещё';
   }));
   root.querySelectorAll('[data-cl]').forEach(cb => cb.addEventListener('change', () => {
     const [type, taskId, itemId] = cb.dataset.cl.split(':');
@@ -371,6 +391,10 @@ function openTaskForm(type, id) {
         <input type="text" name="title" value="${esc(t.title || '')}" placeholder="Что нужно делать?" required autofocus>
       </label>
 
+      <label class="field" style="grid-column: 1/-1;">Заметка
+        <textarea name="note" rows="3" placeholder="Подробности, веса, условия — необязательно">${esc(t.note || '')}</textarea>
+      </label>
+
       ${type === 'habit' ? `
       <div class="field" style="grid-column: 1/-1;">Тип привычки
         <div class="check-row">
@@ -406,7 +430,7 @@ function openTaskForm(type, id) {
       const title = String(f.get('title') || '').trim();
       if (!title) return;
 
-      const base = { title };
+      const base = { title, note: String(f.get('note') || '').trim() };
 
       mutate(() => {
         if (type === 'habit') {
