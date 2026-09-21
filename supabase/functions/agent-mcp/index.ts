@@ -82,6 +82,80 @@ const TOOLS = [
     },
   },
   {
+    name: "update_workout",
+    description: "Изменить уже записанную тренировку в One: переименовать, перенести на другую дату, поправить заметку, переписать подходы у одного упражнения или заменить весь список упражнений. Тренировка ищется по названию и дате, потому что id записей ассистенту не видны. Если под условие попадает несколько тренировок, ничего не меняется, пока не передан all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название тренировки, как она названа в приложении. Достаточно узнаваемой части: сравнение без учёта регистра и по вхождению" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, на которой тренировка лежит сейчас" },
+        new_title: { type: "string", description: "Новое название" },
+        new_date: { type: "string", description: "Новая дата YYYY-MM-DD — перенести тренировку на другой день" },
+        note: { type: "string", description: "Новая заметка; пустая строка стирает старую" },
+        exercise: {
+          type: "object",
+          description: "Правка одного упражнения внутри тренировки. Упражнение ищется по имени так же, как тренировка — по вхождению без учёта регистра. Если такого нет, оно добавляется в конец.",
+          properties: {
+            name: { type: "string", description: "Имя упражнения, которое правим" },
+            new_name: { type: "string", description: "Новое имя упражнения" },
+            remove: { type: "boolean", description: "true — убрать это упражнение из тренировки" },
+            sets: {
+              type: "array",
+              description: "Новые подходы — заменяют старые целиком, а не дописываются",
+              items: {
+                type: "object",
+                properties: {
+                  weight: { type: "number", description: "Вес в кг, 0 или не указывать, если без веса" },
+                  reps: { type: "number", description: "Число повторов" },
+                },
+                required: ["reps"],
+              },
+            },
+          },
+          required: ["name"],
+        },
+        exercises: {
+          type: "array",
+          description: "Заменить весь список упражнений целиком. Использовать, когда проще переписать тренировку, чем чинить её по частям; для правки одного упражнения есть поле exercise.",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Название упражнения" },
+              sets: {
+                type: "array",
+                description: "Подходы",
+                items: {
+                  type: "object",
+                  properties: {
+                    weight: { type: "number", description: "Вес в кг, 0 или не указывать, если без веса" },
+                    reps: { type: "number", description: "Число повторов" },
+                  },
+                  required: ["reps"],
+                },
+              },
+            },
+            required: ["name", "sets"],
+          },
+        },
+        all: { type: "boolean", description: "Изменить все совпадения, а не отказаться при неоднозначности" },
+      },
+      required: ["title", "date"],
+    },
+  },
+  {
+    name: "delete_workout",
+    description: "Удалить тренировку из One. Запись ищется по названию и дате. Если под условие попадает несколько тренировок, ничего не удаляется, пока не передан all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название тренировки. Достаточно узнаваемой части: сравнение без учёта регистра и по вхождению" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, на которой лежит тренировка" },
+        all: { type: "boolean", description: "Удалить все совпадения, а не отказаться при неоднозначности" },
+      },
+      required: ["title", "date"],
+    },
+  },
+  {
     name: "add_meal",
     description: "Добавить приём пищи в дневник питания приложения One (КБЖУ).",
     inputSchema: {
@@ -287,6 +361,8 @@ const TOOLS = [
 const TOOL_KIND: Record<string, string> = {
   add_transaction: "transaction",
   add_workout: "workout",
+  update_workout: "workout_update",
+  delete_workout: "workout_delete",
   add_meal: "meal",
   update_meal: "meal_update",
   delete_meal: "meal_delete",
@@ -358,6 +434,8 @@ function toolResultText(name: string, args: Record<string, unknown>) {
     return `${args.type === "income" ? "Доход" : "Расход"} ${args.amount}${args.category ? " · " + args.category : ""}`;
   }
   if (name === "add_workout") return `Тренировка «${args.title}»`;
+  if (name === "update_workout") return `Правка тренировки «${args.title}» за ${args.date}`;
+  if (name === "delete_workout") return `Удаление тренировки «${args.title}» за ${args.date}`;
   if (name === "add_meal") return `Приём пищи «${args.title}»`;
   if (name === "update_meal") return `Правка приёма «${args.title}» за ${args.date}`;
   if (name === "delete_meal") return `Удаление приёма «${args.title}» за ${args.date}`;

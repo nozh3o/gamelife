@@ -27,7 +27,8 @@ function mutate(fn) {
    приложение может ещё неделю работать на старой версии — и раньше такие
    команды молча пропадали, потому что очередь чистилась целиком. */
 const KNOWN_AGENT_KINDS = new Set([
-  'transaction', 'workout', 'meal', 'meal_update', 'meal_delete',
+  'transaction', 'workout', 'workout_update', 'workout_delete',
+  'meal', 'meal_update', 'meal_delete',
   'task', 'journal', 'goal', 'wish', 'habit_log', 'daily_done', 'measurement',
 ]);
 
@@ -75,6 +76,80 @@ function applyAgentItem(item) {
     });
     addLog('🏋️', `Тренировка записана Клодом: ${title}`);
     toast(`Клод добавил тренировку: ${title}`, 'gold');
+  } else if (item.kind === 'workout_update' || item.kind === 'workout_delete') {
+    // То же правило адресации, что у приёмов пищи: Клод не видит историю
+    // и не знает id, поэтому называет тренировку по имени и дате. При
+    // нескольких совпадениях по умолчанию не делаем ничего.
+    const needle = String(p.title || '').trim().toLowerCase();
+    const date = String(p.date || '').trim();
+    if (!needle || !date) return;
+    const found = state.workouts.filter(w =>
+      w.date === date && String(w.title || '').toLowerCase().includes(needle));
+
+    if (!found.length) {
+      toast(`Клод не нашёл тренировку «${p.title}» за ${fmtDateHuman(date)}`, 'red');
+      return;
+    }
+    if (found.length > 1 && !p.all) {
+      toast(`Под «${p.title}» за ${fmtDateHuman(date)} подходит ${found.length} тренировки — Клод не стал угадывать`, 'red');
+      return;
+    }
+
+    if (item.kind === 'workout_delete') {
+      const ids = new Set(found.map(w => w.id));
+      state.workouts = state.workouts.filter(w => !ids.has(w.id));
+      ids.forEach(id => markDeleted(id));
+      addLog('🗑️', `Клод удалил тренировку: ${p.title}`);
+      toast(`Клод удалил ${found.length === 1 ? `«${p.title}»` : `${found.length} тренировки`}`, 'gold');
+      return;
+    }
+
+    const readSets = list => (list || [])
+      .map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0 }))
+      .filter(s => s.reps > 0 || s.weight > 0);
+
+    let touched = false;
+    found.forEach(w => {
+      if (p.new_title != null && String(p.new_title).trim()) { w.title = String(p.new_title).trim(); touched = true; }
+      if (p.new_date != null && String(p.new_date).trim()) { w.date = String(p.new_date).trim(); touched = true; }
+      if (p.note != null) { w.note = String(p.note).trim(); touched = true; }
+
+      if (Array.isArray(p.exercises) && p.exercises.length) {
+        const list = p.exercises.map(ex => ({
+          id: uid(),
+          name: String(ex.name || 'Упражнение').trim() || 'Упражнение',
+          sets: readSets(ex.sets),
+        })).filter(ex => ex.sets.length);
+        if (list.length) { w.exercises = list; touched = true; }
+      }
+
+      const patch = p.exercise;
+      if (patch && String(patch.name || '').trim()) {
+        const exNeedle = String(patch.name).trim().toLowerCase();
+        w.exercises = w.exercises || [];
+        const ex = w.exercises.find(e => String(e.name || '').toLowerCase().includes(exNeedle));
+        if (patch.remove) {
+          if (ex) { w.exercises = w.exercises.filter(e => e !== ex); touched = true; }
+        } else if (ex) {
+          if (patch.new_name != null && String(patch.new_name).trim()) ex.name = String(patch.new_name).trim();
+          // подходы заменяются целиком: дописывать их вслепую значит
+          // удваивать тренировку при повторной правке
+          const sets = readSets(patch.sets);
+          if (sets.length) ex.sets = sets;
+          touched = true;
+        } else {
+          const sets = readSets(patch.sets);
+          if (sets.length) {
+            w.exercises.push({ id: uid(), name: String(patch.name).trim(), sets });
+            touched = true;
+          }
+        }
+      }
+    });
+
+    if (!touched) return;
+    addLog('✏️', `Клод поправил тренировку: ${p.title}`);
+    toast(`Клод поправил «${p.title}»`, 'gold');
   } else if (item.kind === 'meal') {
     const title = String(p.title || 'Приём пищи').trim() || 'Приём пищи';
     // date поддерживают все остальные kind — у приёмов пищи он терялся, и еда,
