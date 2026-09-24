@@ -30,7 +30,42 @@ const KNOWN_AGENT_KINDS = new Set([
   'transaction', 'workout', 'workout_update', 'workout_delete',
   'meal', 'meal_update', 'meal_delete',
   'task', 'journal', 'goal', 'wish', 'habit_log', 'daily_done', 'measurement',
+  'task_update', 'task_delete', 'transaction_update', 'transaction_delete',
+  'goal_update', 'goal_delete', 'wish_update', 'wish_delete', 'measurement_delete',
 ]);
+
+/* Общий поиск записи для правки и удаления. Клод не знает id, поэтому
+   называет запись по куску названия (и дате, если она есть). Правило то же,
+   что у еды и тренировок: несколько совпадений без all=true — не трогаем
+   ничего, молча задеть не ту запись хуже, чем не задеть никакую.
+   Возвращает найденные записи или null, если уже показан тост с отказом. */
+function agentFind(list, p, what, opts = {}) {
+  const needle = String(p.title || '').trim().toLowerCase();
+  const date = String(p.date || '').trim();
+  if (!needle && !(opts.dateOnly && date)) return null;
+  let found = list.filter(x =>
+    (!needle || String(x.title || '').toLowerCase().includes(needle)) &&
+    (!date || x.date === date));
+  // точное совпадение названия сильнее вхождения: «Атлант: АВР» не должна
+  // упираться в неоднозначность только потому, что есть «Атлант: АВР + …»
+  if (found.length > 1 && needle) {
+    const exact = found.filter(x => String(x.title || '').trim().toLowerCase() === needle);
+    if (exact.length) found = exact;
+  }
+  const label = needle ? `«${p.title}»` : '';
+  const when = date ? ` за ${fmtDateHuman(date)}` : '';
+  if (!found.length) {
+    toast(`Клод не нашёл ${what} ${label}${when}`, 'red');
+    return null;
+  }
+  if (found.length > 1 && !p.all) {
+    toast(`Под ${what} ${label}${when} подходит ${found.length} — Клод не стал угадывать`, 'red');
+    return null;
+  }
+  return found;
+}
+
+const agentStr = v => v != null && String(v).trim() ? String(v).trim() : null;
 
 function processAgentInbox() {
   const inbox = state.agentInbox || [];
@@ -290,6 +325,109 @@ function applyAgentItem(item) {
       addLog('📅', `Ежедневка выполнена Клодом: ${d.title} (стрик ${d.streak})`);
     }
     toast(`Клод выполнил ежедневку: ${d.title}`, 'gold');
+  } else if (item.kind === 'task_update' || item.kind === 'task_delete') {
+    const found = agentFind(state.todos, p, 'задачу');
+    if (!found) return;
+    const name = found.length === 1 ? `«${found[0].title}»` : `${found.length} задачи`;
+    if (item.kind === 'task_delete') {
+      const ids = new Set(found.map(t => t.id));
+      state.todos = state.todos.filter(t => !ids.has(t.id));
+      ids.forEach(id => markDeleted(id));
+      addLog('🗑️', `Клод удалил задачу: ${p.title}`);
+      toast(`Клод удалил ${name}`, 'gold');
+      return;
+    }
+    found.forEach(t => {
+      if (agentStr(p.new_title)) t.title = agentStr(p.new_title);
+      if (agentStr(p.new_date)) t.date = agentStr(p.new_date);
+      if (p.note != null) t.note = String(p.note).trim();
+      if (p.done === true && !t.done) {
+        t.done = true; t.doneAt = nowISO();
+        addLog('✅', `Задача выполнена (Клод): ${t.title}`);
+      } else if (p.done === false && t.done) {
+        t.done = false; t.doneAt = null;
+      }
+    });
+    toast(`Клод ${p.done === true ? 'закрыл' : 'поправил'} ${name}`, 'gold');
+  } else if (item.kind === 'transaction_update' || item.kind === 'transaction_delete') {
+    // у операции нет названия — ищем по дате, сумме и куску категории или
+    // заметки; дата обязательна, иначе под «5000» попадёт полгода истории
+    if (!agentStr(p.date)) return;
+    const cat = String(p.category || '').trim().toLowerCase();
+    const list = state.finance.transactions.filter(tx =>
+      (p.amount == null || Number(tx.amount) === Math.abs(Number(p.amount))) &&
+      (!cat || `${tx.category} ${tx.note}`.toLowerCase().includes(cat)));
+    const found = agentFind(list, { ...p, title: '' }, 'операцию', { dateOnly: true });
+    if (!found) return;
+    if (item.kind === 'transaction_delete') {
+      found.forEach(tx => deleteTransaction(tx.id));
+      addLog('🗑️', `Клод удалил операцию за ${fmtDateHuman(p.date)}`);
+      toast(`Клод удалил ${found.length === 1 ? `операцию ${fmtMoney(found[0].amount)}` : `${found.length} операции`}`, 'gold');
+      return;
+    }
+    // баланс счёта держится на эффекте операции: снимаем старый, правим,
+    // накладываем новый — иначе правка суммы разъедется с остатком на счёте
+    found.forEach(tx => {
+      applyTxEffect(tx, -1);
+      if (p.new_amount != null && Number(p.new_amount) > 0) tx.amount = Math.abs(Number(p.new_amount));
+      if (p.new_type === 'income' || p.new_type === 'expense') tx.type = p.new_type;
+      if (agentStr(p.new_category)) tx.category = agentStr(p.new_category);
+      if (p.note != null) tx.note = String(p.note).trim();
+      if (agentStr(p.new_date)) tx.date = agentStr(p.new_date);
+      applyTxEffect(tx, 1);
+    });
+    addLog('✏️', `Клод поправил операцию за ${fmtDateHuman(p.date)}`);
+    toast('Клод поправил операцию', 'gold');
+  } else if (item.kind === 'goal_update' || item.kind === 'goal_delete') {
+    const found = agentFind(state.goals, p, 'цель');
+    if (!found) return;
+    if (item.kind === 'goal_delete') {
+      const ids = new Set(found.map(g => g.id));
+      state.goals = state.goals.filter(g => !ids.has(g.id));
+      ids.forEach(id => markDeleted(id));
+      addLog('🗑️', `Клод удалил цель: ${p.title}`);
+      toast(`Клод удалил цель «${found[0].title}»`, 'gold');
+      return;
+    }
+    found.forEach(g => {
+      if (agentStr(p.new_title)) g.title = agentStr(p.new_title);
+      if (p.note != null) g.note = String(p.note).trim();
+      if (p.deadline != null) g.deadline = agentStr(p.deadline);
+      if (p.target != null && Number(p.target) > 0 && g.kind === 'numeric') g.target = Number(p.target);
+      if (p.moneyReward != null) g.moneyReward = Number(p.moneyReward) || 0;
+    });
+    addLog('✏️', `Клод поправил цель: ${p.title}`);
+    toast(`Клод поправил цель «${found[0].title}»`, 'gold');
+  } else if (item.kind === 'wish_update' || item.kind === 'wish_delete') {
+    const found = agentFind(state.wishes, p, 'желание');
+    if (!found) return;
+    if (item.kind === 'wish_delete') {
+      const ids = new Set(found.map(w => w.id));
+      state.wishes = state.wishes.filter(w => !ids.has(w.id));
+      ids.forEach(id => markDeleted(id));
+      addLog('🗑️', `Клод удалил желание: ${p.title}`);
+      toast(`Клод удалил желание «${found[0].title}»`, 'gold');
+      return;
+    }
+    found.forEach(w => {
+      if (agentStr(p.new_title)) w.title = agentStr(p.new_title);
+      if (p.note != null) w.note = String(p.note).trim();
+      if (p.done === true && !w.done) { w.done = true; w.doneAt = nowISO(); }
+      else if (p.done === false) { w.done = false; w.doneAt = null; }
+    });
+    toast(`Клод поправил желание «${found[0].title}»`, 'gold');
+  } else if (item.kind === 'measurement_delete') {
+    // замер на дату один, так что дата называет его однозначно;
+    // правка идёт через add_measurement — он дописывает поля в тот же замер
+    const date = agentStr(p.date);
+    if (!date) return;
+    const gone = state.body.entries.filter(e => e.date === date);
+    if (!gone.length) { toast(`Клод не нашёл замер за ${fmtDateHuman(date)}`, 'red'); return; }
+    state.body.entries = state.body.entries.filter(e => e.date !== date);
+    gone.forEach(e => markDeleted(e.id));
+    syncWeightToNutrition();
+    addLog('🗑️', `Клод удалил замер за ${fmtDateHuman(date)}`);
+    toast(`Клод удалил замер за ${fmtDateHuman(date)}`, 'gold');
   }
 }
 

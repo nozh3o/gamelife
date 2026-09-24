@@ -292,6 +292,136 @@ const TOOLS = [
     },
   },
   {
+    name: "update_task",
+    description: "Изменить задачу в One: закрыть (done=true) или вернуть в работу, переименовать, перенести на другой день, поправить заметку. Задача ищется по названию — без учёта регистра и по вхождению; если точное название совпадает у одной, берётся она. Дата сужает поиск. Если подходит несколько задач, ничего не меняется, пока не передан all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название задачи, как в приложении, или узнаваемая часть" },
+        date: { type: "string", description: "Дата YYYY-MM-DD, на которой задача лежит сейчас — необязательно, сужает поиск" },
+        done: { type: "boolean", description: "true — отметить выполненной, false — вернуть в невыполненные" },
+        new_title: { type: "string", description: "Новое название" },
+        new_date: { type: "string", description: "Новая дата YYYY-MM-DD — перенести задачу" },
+        note: { type: "string", description: "Новая заметка; пустая строка стирает старую" },
+        all: { type: "boolean", description: "Изменить все совпадения, а не отказаться при неоднозначности" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "delete_task",
+    description: "Удалить задачу из One. Ищется по названию (вхождение без учёта регистра, точное совпадение приоритетнее), дата сужает поиск. Если подходит несколько, ничего не удаляется, пока не передан all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название задачи или узнаваемая часть" },
+        date: { type: "string", description: "Дата YYYY-MM-DD — необязательно, сужает поиск" },
+        all: { type: "boolean", description: "Удалить все совпадения" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_transaction",
+    description: "Изменить трату или доход в One: сумму, тип, категорию, заметку, дату. Баланс счёта пересчитывается. Операция ищется по дате, плюс сумма и/или кусок категории или заметки. Если подходит несколько, ничего не меняется без all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Дата операции YYYY-MM-DD" },
+        amount: { type: "number", description: "Текущая сумма — для поиска" },
+        category: { type: "string", description: "Кусок категории или заметки — для поиска" },
+        new_amount: { type: "number", description: "Новая сумма" },
+        new_type: { type: "string", enum: ["expense", "income"], description: "Новый тип" },
+        new_category: { type: "string", description: "Новая категория" },
+        note: { type: "string", description: "Новая заметка" },
+        new_date: { type: "string", description: "Новая дата YYYY-MM-DD" },
+        all: { type: "boolean", description: "Изменить все совпадения" },
+      },
+      required: ["date"],
+    },
+  },
+  {
+    name: "delete_transaction",
+    description: "Удалить трату или доход из One, баланс счёта откатывается. Поиск по дате, плюс сумма и/или кусок категории или заметки. Если подходит несколько, ничего не удаляется без all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Дата операции YYYY-MM-DD" },
+        amount: { type: "number", description: "Сумма — для поиска" },
+        category: { type: "string", description: "Кусок категории или заметки — для поиска" },
+        all: { type: "boolean", description: "Удалить все совпадения" },
+      },
+      required: ["date"],
+    },
+  },
+  {
+    name: "update_goal",
+    description: "Изменить цель в One: название, заметку, дедлайн, числовую цель, денежную награду. Ищется по названию; при нескольких совпадениях ничего не меняется без all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название цели или узнаваемая часть" },
+        new_title: { type: "string", description: "Новое название" },
+        note: { type: "string", description: "Новая заметка" },
+        deadline: { type: "string", description: "Новый дедлайн YYYY-MM-DD; пустая строка снимает дедлайн" },
+        target: { type: "number", description: "Новое целевое число — только для числовых целей" },
+        moneyReward: { type: "number", description: "Новая денежная награда" },
+        all: { type: "boolean", description: "Изменить все совпадения" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "delete_goal",
+    description: "Удалить цель из One. Ищется по названию; при нескольких совпадениях ничего не удаляется без all=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название цели или узнаваемая часть" },
+        all: { type: "boolean", description: "Удалить все совпадения" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_wish",
+    description: "Изменить желание в карте желаний One: название, заметку, отметить исполненным. Ищется по названию.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название желания или узнаваемая часть" },
+        new_title: { type: "string", description: "Новое название" },
+        note: { type: "string", description: "Новая заметка" },
+        done: { type: "boolean", description: "true — исполнено, false — вернуть" },
+        all: { type: "boolean", description: "Изменить все совпадения" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "delete_wish",
+    description: "Удалить желание из карты желаний One. Ищется по названию.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Название желания или узнаваемая часть" },
+        all: { type: "boolean", description: "Удалить все совпадения" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "delete_measurement",
+    description: "Удалить замер тела за дату из One. Чтобы поправить замер, а не удалять, используй add_measurement с той же датой — он дописывает поля.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Дата замера YYYY-MM-DD" },
+      },
+      required: ["date"],
+    },
+  },
+  {
     name: "add_journal_entry",
     description: "Сделать запись в дневник дня приложения One: настроение, победы, благодарности, текст. Если запись на этот день уже есть — дополняет её.",
     inputSchema: {
@@ -373,6 +503,15 @@ const TOOL_KIND: Record<string, string> = {
   add_wish: "wish",
   log_habit: "habit_log",
   complete_daily: "daily_done",
+  update_task: "task_update",
+  delete_task: "task_delete",
+  update_transaction: "transaction_update",
+  delete_transaction: "transaction_delete",
+  update_goal: "goal_update",
+  delete_goal: "goal_delete",
+  update_wish: "wish_update",
+  delete_wish: "wish_delete",
+  delete_measurement: "measurement_delete",
 };
 
 function rpcResult(id: unknown, result: unknown) {
@@ -458,6 +597,15 @@ function toolResultText(name: string, args: Record<string, unknown>) {
   if (name === "add_wish") return `Желание «${args.title}»`;
   if (name === "log_habit") return `Привычка «${args.name}»`;
   if (name === "complete_daily") return `Ежедневка «${args.name}»`;
+  if (name === "update_task") return args.done === true ? `Задача «${args.title}» закрыта` : `Правка задачи «${args.title}»`;
+  if (name === "delete_task") return `Удаление задачи «${args.title}»`;
+  if (name === "update_transaction") return `Правка операции за ${args.date}`;
+  if (name === "delete_transaction") return `Удаление операции за ${args.date}`;
+  if (name === "update_goal") return `Правка цели «${args.title}»`;
+  if (name === "delete_goal") return `Удаление цели «${args.title}»`;
+  if (name === "update_wish") return `Правка желания «${args.title}»`;
+  if (name === "delete_wish") return `Удаление желания «${args.title}»`;
+  if (name === "delete_measurement") return `Удаление замера за ${args.date}`;
   return String(args.title || args.name || "");
 }
 
